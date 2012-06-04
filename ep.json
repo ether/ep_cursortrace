@@ -1,0 +1,14 @@
+{
+  "parts": [
+    {
+      "name": "cursortrace",
+      "client_hooks": {
+        "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
+        "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
+        "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
+        "aceAttribsToClasses": "ep_cursortrace/static/js/main:aceAttribsToClasses",
+        "aceCreateDomLine": "ep_cursortrace/static/js/main:aceCreateDomLine"
+      }
+    }
+  ]
+}

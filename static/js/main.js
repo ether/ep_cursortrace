@@ -107,9 +107,14 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     // Destroy all Div with this class
     $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
 
-    $(outBody).append("<div class='caretIndicator caret-"+authorClass+"' \
-style='height:15px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' \
-title="+authorName+"></div>");
+    // Create a new DIV with this class and a UID
+    var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:15px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
+    $(outBody).append($indicator);
+
+    setTimeout(function(){
+      $indicator.remove();
+    }, 2000);
+     
 
   }
 }

@@ -51,7 +51,9 @@ exports.handleMessage = function(hook_name, context, callback){
             action: "cursorPosition",
             authorId: message.myAuthorId,
             authorName: authorName,
-            padId: message.padId
+            padId: message.padId,
+            locationX: message.locationX,
+            locationY: message.locationY
           }
         }
       };

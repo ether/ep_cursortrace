@@ -104,7 +104,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
   if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
     
     var authorName = escape(context.payload.authorName);
-    console.log("new position from "+authorName);
+    console.log("new position from "+authorName, context.payload);
   }
 }
 

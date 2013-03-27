@@ -51,60 +51,66 @@ var lineAndColumnFromChar = function(x)
 
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  if (initiated && args.callstack.isUserChange && args.callstack.selectionAffected && !(args.callstack.editEvent.eventType === "idleWorkTimer") && args.callstack.docTextChanged && (args.callstack.type === "handleKeyEvent") ) {
-    var rep = args.editorInfo.ace_getRep();
-    if (!last || rep.selEnd[0] != last[0] || rep.selEnd[1] != last[1]) {
+  // TODO: Click events show previous position :|  Seems to be a race condition
+  var caretMoving = ((!args.callstack.editEvent.eventType == "handleClick") || (args.callstack.type === "handleKeyEvent"));
+  if (caretMoving && initiated && !(args.callstack.editEvent.eventType === "idleWorkTimer")){
+    var rep = args.editorInfo.ace_getRep(); // get the caret position
+    var Y = rep.selEnd[0];
+    var X = rep.selEnd[1];
+    if (!last || Y != last[0] || X != last[1]) { // If the position has changed
       var cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
       var myAuthorId = pad.getUserId();
       var padId = pad.getPadId();
-      var location = {y: rep.selEnd[0], x: rep.selEnd[1]};
+      var location = {y: Y, x: X};
       // Create a REQUEST message to send to the server
       var message = {
         type : 'cursor',
         action : 'cursorPosition',
-        locationY: rep.selEnd[0],
-        locationX: rep.selEnd[1],
+        locationY: Y,
+        locationX: X,
         padId : padId,
         myAuthorId : myAuthorId
       }
+      last = [];
+      last[0] = Y;
+      last[1] = X;
+      
       console.log("Sent message", message);
       pad.collabClient.sendMessage(message);  // Send the request through the server to create a tunnel to the client
-
-
-/*
-      if (last) {
-         console.log("X1");
-        args.editorInfo.ace_performDocumentApplyAttributesToRange([last[0], Math.max(last[1] - 1, 0)], last, [[cls, ""]]);
-      } else if (last != undefined) {
-        console.log("X2");
-        args.editorInfo.ace_performDocumentApplyAttributesToCharRange(0, rep.alltext.length, [[cls, ""]]);
-      }
-
-      var line = rep.lines.atIndex(rep.selEnd[0]);
-      if (line.width > 0) {
-        console.log("X3");
-        args.editorInfo.ace_performDocumentApplyAttributesToRange([rep.selEnd[0], Math.max(rep.selEnd[1] - 1, 0)], rep.selEnd, [[cls, "true"]]);
-        last = rep.selEnd;
-      } else {
-        last = null;
-      }
-*/
     }
-
   }
 }
 
 exports.handleClientMessage_CUSTOM = function(hook, context, wut){
   var action = context.payload.action;
   var padId = context.payload.padId;
-  var myAuthorId = context.payload.authorId;
-
-  if(pad.getUserId() === myAuthorId) return false; // Dont process our own caret position (yes we do get it..)
+  var authorId = context.payload.authorId;
+  if(pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..)
+  var authorClass = exports.getAuthorClassName(authorId);
 
   if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
     
     var authorName = escape(context.payload.authorName);
-    console.log("new position from "+authorName, context.payload);
+    var y = context.payload.locationY;
+    var x = context.payload.locationX;
+    y = y+1; // Etherpad line numbers start at 1
+    var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
+    var top = $(div).offset().top;
+    top = top+8;
+    var html = $(div).html();
+    var text = $(div).text();
+    // The problem we have here is we don't know the px X offset of the caret from the user
+    // Because that's a blocker for now lets just put a nice little div on the left hand side..
+    var color = "black"; //TODO
+    var outBody = $('iframe[name="ace_outer"]').contents().find("body");
+
+    // Destroy all Div with this class
+    $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
+
+    $(outBody).append("<div class='caretIndicator caret-"+authorClass+"' \
+style='height:15px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' \
+title="+authorName+"></div>");
+
   }
 }
 
@@ -144,3 +150,6 @@ exports.aceCreateDomLine = function(hook_name, args, cb) {
     return cb([{cls: clss.join(" "), extraOpenTags: '<span style="border-bottom: 5px solid ' + color +'">', extraCloseTags: '</span>'}]);
   }
 };
+
+
+

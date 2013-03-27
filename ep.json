@@ -7,7 +7,11 @@
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
         "aceAttribsToClasses": "ep_cursortrace/static/js/main:aceAttribsToClasses",
-        "aceCreateDomLine": "ep_cursortrace/static/js/main:aceCreateDomLine"
+        "aceCreateDomLine": "ep_cursortrace/static/js/main:aceCreateDomLine",
+        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
+      },
+      "hooks": {
+        "handleMessage": "ep_cursortrace/handleMessage"
       }
     }
   ]

@@ -51,12 +51,27 @@ var lineAndColumnFromChar = function(x)
 
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  if (initiated && args.callstack.isUserChange && args.callstack.selectionAffected) {
+  if (initiated && args.callstack.isUserChange && args.callstack.selectionAffected && !(args.callstack.editEvent.eventType === "idleWorkTimer") && args.callstack.docTextChanged && (args.callstack.type === "handleKeyEvent") ) {
     var rep = args.editorInfo.ace_getRep();
-
     if (!last || rep.selEnd[0] != last[0] || rep.selEnd[1] != last[1]) {
       var cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
+      var myAuthorId = pad.getUserId();
+      var padId = pad.getPadId();
+      var location = {y: rep.selEnd[0], x: rep.selEnd[1]};
+      // Create a REQUEST message to send to the server
+      var message = {
+        type : 'cursor',
+        action : 'cursorPosition',
+        locationY: rep.selEnd[0],
+        locationX: rep.selEnd[1],
+        padId : padId,
+        myAuthorId : myAuthorId
+      }
+      console.log("Sent message", message);
+      pad.collabClient.sendMessage(message);  // Send the request through the server to create a tunnel to the client
 
+
+/*
       if (last) {
          console.log("X1");
         args.editorInfo.ace_performDocumentApplyAttributesToRange([last[0], Math.max(last[1] - 1, 0)], last, [[cls, ""]]);
@@ -73,7 +88,23 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       } else {
         last = null;
       }
+*/
     }
+
+  }
+}
+
+exports.handleClientMessage_CUSTOM = function(hook, context, wut){
+  var action = context.payload.action;
+  var padId = context.payload.padId;
+  var myAuthorId = context.payload.authorId;
+
+  if(pad.getUserId() === myAuthorId) return false; // Dont process our own caret position (yes we do get it..)
+
+  if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
+    
+    var authorName = escape(context.payload.authorName);
+    console.log("new position from "+authorName);
   }
 }
 

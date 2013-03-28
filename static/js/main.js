@@ -3,7 +3,7 @@ var last = undefined;
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
   // FIXME: relative paths
-  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="/static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
+  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
   return cb();
 };
 
@@ -75,7 +75,7 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       last[0] = Y;
       last[1] = X;
       
-      console.log("Sent message", message);
+      // console.log("Sent message", message);
       pad.collabClient.sendMessage(message);  // Send the request through the server to create a tunnel to the client
     }
   }
@@ -101,24 +101,33 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var text = $(div).text();
     // The problem we have here is we don't know the px X offset of the caret from the user
     // Because that's a blocker for now lets just put a nice little div on the left hand side..
-    var color = "black"; //TODO
-    var outBody = $('iframe[name="ace_outer"]').contents().find("body");
+    // Author color
+    var users = pad.collabClient.getConnectedUsers();
+    $.each(users, function(user, value){
+      if(value.userId == authorId){
+        var color = value.colorId; // TODO Watch out for XSS
+        var outBody = $('iframe[name="ace_outer"]').contents().find("body");
+        var height = $(div).height();
 
-    // Destroy all Div with this class
-    $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
+        // Remove all divs that already exist for this author
+        $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
 
-    // Create a new DIV with this class and a UID
-    var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:15px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
-    $(outBody).append($indicator);
-
-    setTimeout(function(){
-      $indicator.remove();
-    }, 2000);
-     
+        // Create a new Div for this author
+        var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:"+height+"px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
+        $(outBody).append($indicator);
+  
+        // After a while, fade it out :)
+        setTimeout(function(){
+          $indicator.fadeOut(500, function(){
+            $indicator.remove();
+          });
+        }, 2000);
+      }
+    });     
 
   }
 }
-
+/*
 exports.aceAttribsToClasses = function(hook_name, args, cb) {
   if (args.key.indexOf('ep_cursortrace-') != -1 && args.value != "") {
     return cb([args.key]);
@@ -156,5 +165,5 @@ exports.aceCreateDomLine = function(hook_name, args, cb) {
   }
 };
 
-
+*/
 

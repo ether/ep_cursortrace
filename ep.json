@@ -3,6 +3,7 @@
     {
       "name": "cursortrace",
       "client_hooks": {
+        "aceEditorCSS": "ep_cursortrace/static/js/css",
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
         "aceInitialized": "ep_cursortrace/static/js/main:aceInitialized",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",

@@ -1,0 +1,34 @@
+.ghettoCursorXPos{
+  white-space:pre-wrap;
+  z-index:99999;
+  background:red;
+  position:fixed;
+  top:80px;
+  left:80px;
+  font-size:12px;
+}
+
+.caretindicator{
+  max-width:300px;
+  padding:1px;
+  position:absolute;
+  height:20px;
+}
+
+.caretindicator:before{
+  content: "";
+  display: block;
+  width: 2px;
+  height: 23px;
+  background-color: black;
+  opacity:.5;
+  margin-left:-2px;
+}
+
+.caretindicator p{
+  position:relative;
+  top:2px;
+  margin-top:-24px;
+  padding-left:4px;
+  padding-right:4px;
+}

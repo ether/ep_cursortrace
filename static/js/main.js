@@ -52,12 +52,12 @@ var lineAndColumnFromChar = function(x)
 
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  // TODO: Click events show previous position :|  Seems to be a race condition
-  var caretMoving = ((!args.callstack.editEvent.eventType == "handleClick") || (args.callstack.type === "handleKeyEvent"));
-  if (caretMoving && initiated && !(args.callstack.editEvent.eventType === "idleWorkTimer")){
-    var rep = args.editorInfo.ace_getRep(); // get the caret position
-    var Y = rep.selEnd[0];
-    var X = rep.selEnd[1];
+  // TODO: Click events show previous position :|  Seems to be a race condition, actually it's expected behavior from
+  // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
+  var caretMoving = ((args.callstack.editEvent.eventType == "handleClick") || (args.callstack.type === "handleKeyEvent") || (args.callstack.type === "idleWorkTimer") );
+  if (caretMoving && initiated){ // Note that we have to use idle timer to get the mouse position
+    var Y = args.rep.selStart[0];
+    var X = args.rep.selStart[1];
     if (!last || Y != last[0] || X != last[1]) { // If the position has changed
       var cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
       var myAuthorId = pad.getUserId();
@@ -98,13 +98,13 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var leftOffset = $(inner)[0].offsetLeft;
-    var top = $(div).offset().top + 7;
+    var top = $(div).offset().top -10;
 
     // The problem we have here is we don't know the px X offset of the caret from the user
     // Because that's a blocker for now lets just put a nice little div on the left hand side..
     // SO here is how we do this..
     // Get the entire string including the styling
-    // Put it in a hidden SPAN
+    // Put it in a hidden SPAN that has the same width as ace inner
     // Delete everything after X chars
     // Measure the new width -- This gives us the offset without modifying the ACE Dom
 
@@ -118,7 +118,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var newText = html_substr(html, (x-1)); 
 
     // A load of fugly HTML that can prolly be moved ot CSS
-    var newLine = "<span style='white-space:pre-wrap;z-index:99999;background:red;position:fixed;top:80px;left:80px;font-size:12px;' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
+    var newLine = "<span id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
 
     // Add the HTML to the DOM
     var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
@@ -140,22 +140,27 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
         var color = value.colorId; // TODO Watch out for XSS
         var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
         var span = $(div).contents().find("span:first");
-        var height = $(span).css("line-height");
+        // var height = $(span).css("line-height"); // Keep this in, useful for dispalying side indicators
+        // if(!height){
+        //  var height = $(div).height() + "px";
+        // }
+        var height = "16px";
 
         // Remove all divs that already exist for this author
         $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
 
         // Create a new Div for this author
-        var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:"+height+";width:3px;position:absolute;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
+        var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p>"+authorName+"</p></div>");
         $(outBody).append($indicator);
   
+/*
         // After a while, fade it out :)
         setTimeout(function(){
           $indicator.fadeOut(500, function(){
             $indicator.remove();
           });
         }, 2000);
-
+*/
       }
     });     
 
@@ -173,10 +178,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
 
 exports.aceInitialized = function(hook, context){
   var editorInfo = context.editorInfo;
-//  editorInfo.ace_doInsertTaskList = _(exports.tasklist.doInsertTaskList).bind(context); // What does underscore do here?
-//  editorInfo.ace_doToggleTaskListItem = _(exports.tasklist.doToggleTaskListItem).bind(context); // TODO
   padEditor = context.editorInfo.editor;
-console.log(padEditor);
 }
 
 

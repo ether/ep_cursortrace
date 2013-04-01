@@ -98,7 +98,16 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var leftOffset = $(inner)[0].offsetLeft;
+    var stickUp = false;
+    var stickLeft = true;
     var top = $(div).offset().top -10;
+    if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
+      var height = $(div).height() +6;
+      stickUp = true;
+console.log("too high");
+      top = height;
+      // CAKE TODO
+    }
 
     // The problem we have here is we don't know the px X offset of the caret from the user
     // Because that's a blocker for now lets just put a nice little div on the left hand side..
@@ -128,8 +137,10 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
 
     // Get the width of the element (This is how far out X is in px);
     var left = $(worker).width();
+
     // Add the innerdocbody offset
     left = left + leftOffset;
+
     // Remove the element
     $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
 
@@ -149,8 +160,14 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
         // Remove all divs that already exist for this author
         $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
 
+        // Location of stick direction IE up or down
+        if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
+
+        // Location of stick direction IE up or down
+        if(stickLeft){var locationLR = 'stickLeft';}else{var locationLR = 'stickRight';}
+
         // Create a new Div for this author
-        var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p>"+authorName+"</p></div>");
+        var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
         $(outBody).append($indicator);
   
 /*

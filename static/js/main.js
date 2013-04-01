@@ -99,7 +99,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var leftOffset = $(inner)[0].offsetLeft;
     var top = $(div).offset().top + 7;
-//    top = top+7;
 
     // The problem we have here is we don't know the px X offset of the caret from the user
     // Because that's a blocker for now lets just put a nice little div on the left hand side..
@@ -140,7 +139,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
       if(value.userId == authorId){
         var color = value.colorId; // TODO Watch out for XSS
         var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-        var height = $(div).css("line-height");
+        var span = $(div).contents().find("span:first");
+        var height = $(span).css("line-height");
 
         // Remove all divs that already exist for this author
         $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();

@@ -82,7 +82,8 @@ exports.aceEditEvent = function(hook_name, args, cb) {
   }
 }
 
-exports.handleClientMessage_CUSTOM = function(hook, context, wut){
+exports.handleClientMessage_CUSTOM = function(hook, context, cb){
+  /* I NEED A REFACTOR, please */
   var action = context.payload.action;
   var padId = context.payload.padId;
   var authorId = context.payload.authorId;
@@ -90,97 +91,102 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
   var authorClass = exports.getAuthorClassName(authorId);
 
   if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
-    
+
     var authorName = escape(context.payload.authorName);
-    var y = context.payload.locationY;
+    var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     var x = context.payload.locationX;
-    y = y+1; // Etherpad line numbers start at 1
-    var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var leftOffset = $(inner)[0].offsetLeft;
     var stickUp = false;
     var stickLeft = true;
-    var top = $(div).offset().top -10;
-    if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
-      var height = $(div).height() +6;
-      stickUp = true;
-console.log("too high");
-      top = height;
-      // CAKE TODO
-    }
 
-    // The problem we have here is we don't know the px X offset of the caret from the user
-    // Because that's a blocker for now lets just put a nice little div on the left hand side..
-    // SO here is how we do this..
-    // Get the entire string including the styling
-    // Put it in a hidden SPAN that has the same width as ace inner
-    // Delete everything after X chars
-    // Measure the new width -- This gives us the offset without modifying the ACE Dom
+    // Get the target Line
+    var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
 
-    // Get the HTML
-    var html = $(div).html(); 
+    // Is the line visible yet?
+    if ( div.length !== 0 ) {
 
-    // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-    var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId); 
+      var top = $(div).offset().top -10; // A standard generic offset
 
-    // Get the new string but maintain mark up
-    var newText = html_substr(html, (x-1)); 
-
-    // A load of fugly HTML that can prolly be moved ot CSS
-    var newLine = "<span id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
-
-    // Add the HTML to the DOM
-    var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
-
-    // Get the worker element
-    var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
-
-    // Get the width of the element (This is how far out X is in px);
-    var left = $(worker).width();
-
-    // Add the innerdocbody offset
-    left = left + leftOffset;
-
-    // Remove the element
-    $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
-
-    // Author color
-    var users = pad.collabClient.getConnectedUsers();
-    $.each(users, function(user, value){
-      if(value.userId == authorId){
-        var color = value.colorId; // TODO Watch out for XSS
-        var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-        var span = $(div).contents().find("span:first");
-        // var height = $(span).css("line-height"); // Keep this in, useful for dispalying side indicators
-        // if(!height){
-        //  var height = $(div).height() + "px";
-        // }
-        var height = "16px";
-
-        // Remove all divs that already exist for this author
-        $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
-
-        // Location of stick direction IE up or down
-        if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
-
-        // Location of stick direction IE up or down
-        if(stickLeft){var locationLR = 'stickLeft';}else{var locationLR = 'stickRight';}
-
-        // Create a new Div for this author
-        var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
-        $(outBody).append($indicator);
-  
-/*
-        // After a while, fade it out :)
-        setTimeout(function(){
-          $indicator.fadeOut(500, function(){
-            $indicator.remove();
-          });
-        }, 2000);
-*/
+      if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
+        var height = $(div).height() +6;
+        stickUp = true;
+        top = height;
       }
-    });     
 
+      // The problem we have here is we don't know the px X offset of the caret from the user
+      // Because that's a blocker for now lets just put a nice little div on the left hand side..
+      // SO here is how we do this..
+      // Get the entire string including the styling
+      // Put it in a hidden SPAN that has the same width as ace inner
+      // Delete everything after X chars
+      // Measure the new width -- This gives us the offset without modifying the ACE Dom
+
+      // Get the HTML
+      var html = $(div).html(); 
+
+      // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
+      var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId); 
+
+      // if Div contains block attribute IE h1 or H2 then increment by the number
+      if ( $(div).children("span").length < 1 ){ x = x - 1; }// This is horrible but a limitation because I'm parsing HTML
+
+      // Get the new string but maintain mark up
+      var newText = html_substr(html, (x)); 
+
+      // A load of fugly HTML that can prolly be moved ot CSS
+      var newLine = "<span id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
+
+      // Add the HTML to the DOM
+      var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
+
+      // Get the worker element
+      var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
+
+      // Get the width of the element (This is how far out X is in px);
+      var left = $(worker).width();
+
+      // Add the innerdocbody offset
+      left = left + leftOffset;
+
+      // Remove the element
+      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
+
+      // Author color
+      var users = pad.collabClient.getConnectedUsers();
+      $.each(users, function(user, value){
+        if(value.userId == authorId){
+          var color = value.colorId; // TODO Watch out for XSS
+          var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+          var span = $(div).contents().find("span:first");
+          // var height = $(span).css("line-height"); // Keep this in, useful for dispalying side indicators
+          // if(!height){
+          //  var height = $(div).height() + "px";
+          // }
+          var height = "16px";
+  
+          // Remove all divs that already exist for this author
+          $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
+  
+          // Location of stick direction IE up or down
+          if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
+  
+          // Location of stick direction IE up or down
+          if(stickLeft){var locationLR = 'stickLeft';}else{var locationLR = 'stickRight';}
+  
+          // Create a new Div for this author
+          var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
+          $(outBody).append($indicator);
+  
+          // After a while, fade it out :)
+          setTimeout(function(){
+            $indicator.fadeOut(500, function(){
+              $indicator.remove();
+            });
+          }, 2000);
+        }
+      });     
+    }
   }
 }
 

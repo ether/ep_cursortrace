@@ -1,5 +1,7 @@
 var initiated = false;
 var last = undefined;
+var padEditor; 
+
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
   // FIXME: relative paths
@@ -10,7 +12,6 @@ exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
 exports.postAceInit = function(hook_name, args, cb) {
   initiated = true;
 };
-
 
 exports.getAuthorClassName = function(author)
 {
@@ -95,25 +96,57 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
     var x = context.payload.locationX;
     y = y+1; // Etherpad line numbers start at 1
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
-    var top = $(div).offset().top;
-    top = top+8;
-    var html = $(div).html();
-    var text = $(div).text();
+    var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
+    var leftOffset = $(inner)[0].offsetLeft;
+    var top = $(div).offset().top + 7;
+//    top = top+7;
+
     // The problem we have here is we don't know the px X offset of the caret from the user
     // Because that's a blocker for now lets just put a nice little div on the left hand side..
+    // SO here is how we do this..
+    // Get the entire string including the styling
+    // Put it in a hidden SPAN
+    // Delete everything after X chars
+    // Measure the new width -- This gives us the offset without modifying the ACE Dom
+
+    // Get the HTML
+    var html = $(div).html(); 
+
+    // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
+    var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId); 
+
+    // Get the new string but maintain mark up
+    var newText = html_substr(html, (x-1)); 
+
+    // A load of fugly HTML that can prolly be moved ot CSS
+    var newLine = "<span style='white-space:pre-wrap;z-index:99999;background:red;position:fixed;top:80px;left:80px;font-size:12px;' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
+
+    // Add the HTML to the DOM
+    var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
+
+    // Get the worker element
+    var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
+
+    // Get the width of the element (This is how far out X is in px);
+    var left = $(worker).width();
+    // Add the innerdocbody offset
+    left = left + leftOffset;
+    // Remove the element
+    $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
+
     // Author color
     var users = pad.collabClient.getConnectedUsers();
     $.each(users, function(user, value){
       if(value.userId == authorId){
         var color = value.colorId; // TODO Watch out for XSS
-        var outBody = $('iframe[name="ace_outer"]').contents().find("body");
-        var height = $(div).height();
+        var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+        var height = $(div).css("line-height");
 
         // Remove all divs that already exist for this author
         $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
 
         // Create a new Div for this author
-        var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:"+height+"px;width:3px;position:absolute;left:24px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
+        var $indicator = $("<div class='caretIndicator caret-"+authorClass+"' style='height:"+height+";width:3px;position:absolute;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"></div>");
         $(outBody).append($indicator);
   
         // After a while, fade it out :)
@@ -122,48 +155,60 @@ exports.handleClientMessage_CUSTOM = function(hook, context, wut){
             $indicator.remove();
           });
         }, 2000);
+
       }
     });     
 
   }
 }
-/*
-exports.aceAttribsToClasses = function(hook_name, args, cb) {
-  if (args.key.indexOf('ep_cursortrace-') != -1 && args.value != "") {
-    return cb([args.key]);
-  }
-  cb();
-};
 
-exports.aceCreateDomLine = function(hook_name, args, cb) {
-  if (args.cls.indexOf('ep_cursortrace-') >= 0) {
-    var clss = [];
-    var argClss = args.cls.split(" ");
-    var authorId = null;
-    var authorObj = null;
 
-    for (var i = 0; i < argClss.length; i++) {
-      var cls = argClss[i];
-      if (cls.indexOf('ep_cursortrace-')==0){
-        authorId = exports.className2Author(cls);
-        authorObj = clientVars.collab_client_vars.historicalAuthorData[authorId];
-      } else {
-        clss.push(cls);
-      }
+
+
+/***
+ * 
+ *  Once ace is initialized, we bind the functions to the context
+ * 
+ ***/
+
+exports.aceInitialized = function(hook, context){
+  var editorInfo = context.editorInfo;
+//  editorInfo.ace_doInsertTaskList = _(exports.tasklist.doInsertTaskList).bind(context); // What does underscore do here?
+//  editorInfo.ace_doToggleTaskListItem = _(exports.tasklist.doToggleTaskListItem).bind(context); // TODO
+  padEditor = context.editorInfo.editor;
+console.log(padEditor);
+}
+
+
+function html_substr( str, count ) {
+
+    var div = document.createElement('div');
+    div.innerHTML = str;
+
+    walk( div, track );
+
+    function track( el ) {
+        if( count > 0 ) {
+            var len = el.data.length;
+            count -= len;
+            if( count <= 0 ) {
+                el.data = el.substringData( 0, el.data.length + count );
+            }
+        } else {
+            el.data = '';
+        }
     }
 
-    if (!authorObj) {
-      return cb([{cls: clss.join(" "), extraOpenTags: '', extraCloseTags: ''}]);
+    function walk( el, fn ) {
+        var node = el.firstChild;
+        do {
+            if( node.nodeType === 3 ) {
+                fn(node);
+                    //          Added this >>------------------------------------<<
+            } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
+                walk( node, fn );
+            }
+        } while( node = node.nextSibling );
     }
-
-    var color = authorObj.colorId;
-    if (typeof(color) == "number") {
-      color = clientVars.colorPalette[color];
-    }
-
-    return cb([{cls: clss.join(" "), extraOpenTags: '<span style="border-bottom: 5px solid ' + color +'">', extraCloseTags: '</span>'}]);
-  }
-};
-
-*/
-
+    return div.innerHTML;
+}

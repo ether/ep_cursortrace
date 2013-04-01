@@ -4,6 +4,7 @@
       "name": "cursortrace",
       "client_hooks": {
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
+        "aceInitialized": "ep_cursortrace/static/js/main:aceInitialized",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
         "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"

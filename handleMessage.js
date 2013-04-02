@@ -8,6 +8,8 @@ var authorManager = require("../../src/node/db/AuthorManager"),
 padMessageHandler = require("../../src/node/handler/PadMessageHandler"),
             async = require('../../src/node_modules/async');
 
+var buffer = {};
+
 /* 
 * Handle incoming messages from clients
 */
@@ -71,7 +73,13 @@ exports.handleMessage = function(hook_name, context, callback){
 
 
 function sendToRoom(message, msg){
-  padMessageHandler.handleCustomObjectMessage(msg, false, function(){
-    // TODO: Error handling.
-  });
+  var bufferAllows = true; // Todo write some buffer handling for protection and to stop DDoS -- myAuthorId exists in message.
+  if(bufferAllows){
+    setTimeout(function(){ // This is bad..  We have to do it because ACE hasn't redrawn by the time the cursor has arrived
+      padMessageHandler.handleCustomObjectMessage(msg, false, function(){
+        // TODO: Error handling.
+      })
+    }
+    , 500);
+  }
 }

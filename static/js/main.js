@@ -96,6 +96,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
   if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
 
     var authorName = escape(context.payload.authorName);
+    if(authorName == "null"){
+      var authorName = "&#9785;" // If the users username isn't set then display a smiley face
+    }
     var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     var x = context.payload.locationX;
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
@@ -151,11 +154,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Get the width of the element (This is how far out X is in px);
       if(span.length !== 0){
-console.log("this span exists!", span);
         var left = span.position().left;
         left = left + span.width(); // Remember the span here is the stealth span not teh parent span
       }else{
-console.log("getting left from span width");
         var left = $(worker).width();
       }
       // This gives us our X offset :)
@@ -181,7 +182,12 @@ console.log("getting left from span width");
       var users = pad.collabClient.getConnectedUsers();
       $.each(users, function(user, value){
         if(value.userId == authorId){
-          var color = value.colorId; // Test for XSS
+          var colors = pad.getColorPalette(); // support non set colors
+          if(colors[value.colorId]){
+            var color = colors[value.colorId];
+          }else{
+            var color = value.colorId; // Test for XSS
+          }
           var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
           var span = $(div).contents().find("span:first");
   

@@ -155,7 +155,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // This gives us our X offset :)
       
       if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
-        console.log("flip it on Y");
         var height = $(div).height() +6;
         stickUp = true;
         top = height;
@@ -264,18 +263,19 @@ function wrap(target, key) { // key can probably be removed here..
             var newhtml = "";
             var text = this.wholeText; // maybe "textContent" is better?
             for (var i=0; i < text.length; i++) {
-                if (text[i] == ' ') newhtml += " ";
-                else newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
-                //console.log(key);
+                if (text[i] == ' '){
+                  newhtml += "<span data-key="+globalKey+"> </span>";
+                }
+                else
+                { 
+                  newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
+                }
                 key++;
                 globalKey++;
             }
-            //console.log("k", globalKey);
             newtarget.append($(newhtml));
         }
         else { // recursion FTW!
-console.log(globalKey);
-            //console.log("key", globalKey);
             $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
             newtarget.append($(this));
         }

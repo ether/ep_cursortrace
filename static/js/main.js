@@ -84,6 +84,9 @@ exports.aceEditEvent = function(hook_name, args, cb) {
 
 exports.handleClientMessage_CUSTOM = function(hook, context, cb){
   /* I NEED A REFACTOR, please */
+
+  // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
+
   var action = context.payload.action;
   var padId = context.payload.padId;
   var authorId = context.payload.authorId;
@@ -141,16 +144,19 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Wrap teh HTML in spans so we cna find a char
       $(worker).html(wrap($(worker), true));
+      // console.log($(worker).html(), x);
 
       // Get the Left offset of the x span
       var span = $(worker).find("[data-key="+(x-1)+"]");
 
       // Get the width of the element (This is how far out X is in px);
       if(span.length !== 0){
+console.log("this span exists!", span);
         var left = span.position().left;
-        left = left + span.width();
+        left = left + span.width(); // Remember the span here is the stealth span not teh parent span
       }else{
-        var left = 0;
+console.log("getting left from span width");
+        var left = $(worker).width();
       }
       // This gives us our X offset :)
       

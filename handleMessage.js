@@ -38,6 +38,7 @@ exports.handleMessage = function(hook_name, context, callback){
      * action -- The action IE cursorPosition
      * padId -- The padId of the pad both authors are on
      * targetAuthorId -- The Id of the author this user wants to talk to
+     * locationX and location Y are the locations. // TODO make this one object or a touple
      * myAuthorId -- The Id of the author who is trying to talk to the targetAuthorId
   ***/
   if(message.action === 'cursorPosition'){
@@ -70,14 +71,7 @@ exports.handleMessage = function(hook_name, context, callback){
 
 
 function sendToRoom(message, msg){
-//  var sessions = padMessageHandler.sessioninfos;
-// TODO: Optimize me
-//  Object.keys(sessions).forEach(function(key){
-//    var session = sessions[key]
-//    if(session.author == message.targetAuthorId){
   padMessageHandler.handleCustomObjectMessage(msg, false, function(){
-      // TODO: Error handling
-//      }); // Send a message to this session
-//    }
+    // TODO: Error handling.
   });
 }

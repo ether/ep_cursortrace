@@ -1,7 +1,7 @@
 var initiated = false;
 var last = undefined;
 var padEditor; 
-
+var globalKey = 0;
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
   // FIXME: relative paths
@@ -96,7 +96,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
     var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     var x = context.payload.locationX;
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    var leftOffset = $(inner)[0].offsetLeft;
+    var innerWidth = inner.contents().find('#innerdocbody').width();
+    var leftOffset = $(inner)[0].offsetLeft +3;
     var stickUp = false;
     var stickLeft = true;
 
@@ -105,15 +106,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
     // Is the line visible yet?
     if ( div.length !== 0 ) {
-
       var top = $(div).offset().top -10; // A standard generic offset
-
-      if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
-        var height = $(div).height() +6;
-        stickUp = true;
-        top = height;
-      }
-
       // The problem we have here is we don't know the px X offset of the caret from the user
       // Because that's a blocker for now lets just put a nice little div on the left hand side..
       // SO here is how we do this..
@@ -137,14 +130,41 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // A load of fugly HTML that can prolly be moved ot CSS
       var newLine = "<span id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
 
+      // Set the globalKey to 0, we use this when we wrap the objects in a datakey
+      globalKey = 0; // It's bad, messy, don't ever develop like this.
+
       // Add the HTML to the DOM
       var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
 
       // Get the worker element
       var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
 
+      // Wrap teh HTML in spans so we cna find a char
+      $(worker).html(wrap($(worker), true));
+
+      // Get the Left offset of the x span
+      var span = $(worker).find("[data-key="+(x-1)+"]");
+
       // Get the width of the element (This is how far out X is in px);
-      var left = $(worker).width();
+      if(span.length !== 0){
+        var left = span.position().left;
+        left = left + span.width();
+      }else{
+        var left = 0;
+      }
+      // This gives us our X offset :)
+      
+      if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
+        console.log("flip it on Y");
+        var height = $(div).height() +6;
+        stickUp = true;
+        top = height;
+      }else{
+        // Get the height of the element
+        var height = $(worker).height();
+        top = top + height;
+      }
+      
 
       // Add the innerdocbody offset
       left = left + leftOffset;
@@ -156,14 +176,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       var users = pad.collabClient.getConnectedUsers();
       $.each(users, function(user, value){
         if(value.userId == authorId){
-          var color = value.colorId; // TODO Watch out for XSS
+          var color = value.colorId; // Test for XSS
           var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
           var span = $(div).contents().find("span:first");
-          // var height = $(span).css("line-height"); // Keep this in, useful for dispalying side indicators
-          // if(!height){
-          //  var height = $(div).height() + "px";
-          // }
-          var height = "16px";
   
           // Remove all divs that already exist for this author
           $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
@@ -175,7 +190,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           if(stickLeft){var locationLR = 'stickLeft';}else{var locationLR = 'stickRight';}
   
           // Create a new Div for this author
-          var $indicator = $("<div data-color='"+color+"' data-height='"+height+"' class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:"+height+";left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
+          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
           $(outBody).append($indicator);
   
           // After a while, fade it out :)
@@ -236,4 +251,34 @@ function html_substr( str, count ) {
         } while( node = node.nextSibling );
     }
     return div.innerHTML;
+}
+
+function wrap(target, key) { // key can probably be removed here..
+    var newtarget = $("<div></div>");
+    nodes = target.contents().clone(); // the clone is critical!
+    if(key === true){ // We can probably remove all of thise..
+      var key = 0; // Key allows us to increemnt an index inside recursion
+    }
+    nodes.each(function() {
+        if (this.nodeType == 3) { // text
+            var newhtml = "";
+            var text = this.wholeText; // maybe "textContent" is better?
+            for (var i=0; i < text.length; i++) {
+                if (text[i] == ' ') newhtml += " ";
+                else newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
+                //console.log(key);
+                key++;
+                globalKey++;
+            }
+            //console.log("k", globalKey);
+            newtarget.append($(newhtml));
+        }
+        else { // recursion FTW!
+console.log(globalKey);
+            //console.log("key", globalKey);
+            $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
+            newtarget.append($(this));
+        }
+    });
+    return newtarget.html();
 }

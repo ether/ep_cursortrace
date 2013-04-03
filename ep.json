@@ -3,11 +3,15 @@
     {
       "name": "cursortrace",
       "client_hooks": {
+        "aceEditorCSS": "ep_cursortrace/static/js/css",
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
+        "aceInitialized": "ep_cursortrace/static/js/main:aceInitialized",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
-        "aceAttribsToClasses": "ep_cursortrace/static/js/main:aceAttribsToClasses",
-        "aceCreateDomLine": "ep_cursortrace/static/js/main:aceCreateDomLine"
+        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
+      },
+      "hooks": {
+        "handleMessage": "ep_cursortrace/handleMessage"
       }
     }
   ]

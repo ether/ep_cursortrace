@@ -1,9 +1,13 @@
 {
   "name": "ep_cursortrace",
-  "description": "Show cursor movements of other users in real time",
-  "version": "0.0.1",
+  "description": "Show cursor/caret movements of other users in real time",
+  "version": "2.0.1",
   "author": "RedHog (Egil Moeller) <egil.moller@freecode.no>",
-  "contributors": [],
+  "contributors": [{
+    "name": "John McLear",
+    "email": "john@mclear.co.uk",
+    "url": "http://mclear.co.uk"
+  }],
   "dependencies": {},
   "engines": { "node": ">= 0.4.1 < 0.7.0" }
 }

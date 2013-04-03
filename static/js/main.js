@@ -4,7 +4,6 @@ var padEditor;
 var globalKey = 0;
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
-  // FIXME: relative paths
   args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
   return cb();
 };
@@ -52,7 +51,6 @@ var lineAndColumnFromChar = function(x)
 
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  // TODO: Click events show previous position :|  Seems to be a race condition, actually it's expected behavior from
   // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
   var caretMoving = ((args.callstack.editEvent.eventType == "handleClick") || (args.callstack.type === "handleKeyEvent") || (args.callstack.type === "idleWorkTimer") );
   if (caretMoving && initiated){ // Note that we have to use idle timer to get the mouse position

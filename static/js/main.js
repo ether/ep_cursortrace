@@ -165,8 +165,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
         top = height;
       }else{
         // Get the height of the element
-        var height = $(worker).height();
-        top = top + height;
+        // var height = $(worker).height();
+        // top = top + height;
       }
       
 
@@ -203,11 +203,13 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           $(outBody).append($indicator);
   
           // After a while, fade it out :)
+/*
           setTimeout(function(){
             $indicator.fadeOut(500, function(){
               $indicator.remove();
             });
           }, 2000);
+*/
         }
       });     
     }

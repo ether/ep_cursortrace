@@ -14,7 +14,7 @@
   padding:1px;
   position:absolute;
   height:20px;
-  opacity:.5;
+  opacity:1;
 }
 
 div.stickUp:before{

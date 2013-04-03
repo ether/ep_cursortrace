@@ -203,13 +203,11 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           $(outBody).append($indicator);
   
           // After a while, fade it out :)
-/*
           setTimeout(function(){
             $indicator.fadeOut(500, function(){
               $indicator.remove();
             });
           }, 2000);
-*/
         }
       });     
     }

@@ -1,6 +1,5 @@
 # ep_cursortrace
-
-Shows the caret position of the authors on your Pad
+Etherpad plugin to trace the cursor of other users in real time. Shows the caret position of the authors on your Pad.
 
 ## TODO
 

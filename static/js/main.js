@@ -61,7 +61,7 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       var myAuthorId = pad.getUserId();
       var padId = pad.getPadId();
       var location = {y: Y, x: X};
-      // Create a REQUEST message to send to the server
+      // Create a cursor position message to send to the server
       var message = {
         type : 'cursor',
         action : 'cursorPosition',
@@ -75,23 +75,22 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       last[1] = X;
       
       // console.log("Sent message", message);
-      pad.collabClient.sendMessage(message);  // Send the request through the server to create a tunnel to the client
+      pad.collabClient.sendMessage(message);  // Send the cursor position message to the server
     }
   }
 }
 
 exports.handleClientMessage_CUSTOM = function(hook, context, cb){
   /* I NEED A REFACTOR, please */
-
   // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
 
   var action = context.payload.action;
   var padId = context.payload.padId;
   var authorId = context.payload.authorId;
-  if(pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..)
+  if(pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
   var authorClass = exports.getAuthorClassName(authorId);
 
-  if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
+  if(action === 'cursorPosition'){ // an author has sent this client a cursor position, we need to show it in the dom
 
     var authorName = decodeURI(escape(context.payload.authorName));
     if(authorName == "null"){
@@ -157,18 +156,25 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       }else{
         var left = $(worker).width();
       }
-      // This gives us our X offset :)
+
+      // Get the height of the element minus the inner line height
+      var height = worker.height(); // the height of the worker
+      // below doesn't work, it gets the span height wrong!
+      top = top + height - span.height(); // plus the top offset minus the actual height of our focus span
+      // var offset = $(span).offset();
+      // if(offset){
+      //   top = top + offset.top;
+      // }
+      console.log("span", span.height());
+      console.log("span offset", $(span).offset() );
+
+      console.log("top", top);
       
-      if(top < 0){  // If the tooltip wont be visible to the user because it's too high up
-        var height = $(div).height() +6;
+      if(top <= 0){  // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
-        top = height;
-      }else{
-        // Get the height of the element
-        // var height = $(worker).height();
-        // top = top + height;
+        top = top + (span.height()*2);
+        if(top < 0){ top = 0; } // handle case where caret is in 0,0
       }
-      
 
       // Add the innerdocbody offset
       left = left + leftOffset;

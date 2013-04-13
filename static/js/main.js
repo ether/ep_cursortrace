@@ -93,7 +93,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
   if(action === 'cursorPosition'){ // someone has requested we approve their rtc request - we recieved an offer
 
-    var authorName = escape(context.payload.authorName);
+    var authorName = decodeURI(escape(context.payload.authorName));
     if(authorName == "null"){
       var authorName = "&#9785;" // If the users username isn't set then display a smiley face
     }

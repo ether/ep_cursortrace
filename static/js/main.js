@@ -159,17 +159,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Get the height of the element minus the inner line height
       var height = worker.height(); // the height of the worker
-      // below doesn't work, it gets the span height wrong!
       top = top + height - span.height(); // plus the top offset minus the actual height of our focus span
-      // var offset = $(span).offset();
-      // if(offset){
-      //   top = top + offset.top;
-      // }
-      console.log("span", span.height());
-      console.log("span offset", $(span).offset() );
-
-      console.log("top", top);
-      
       if(top <= 0){  // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
         top = top + (span.height()*2);

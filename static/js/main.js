@@ -117,6 +117,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Put it in a hidden SPAN that has the same width as ace inner
       // Delete everything after X chars
       // Measure the new width -- This gives us the offset without modifying the ACE Dom
+      // Due to IE sucking this doesn't work in IE....
 
       // Get the HTML
       var html = $(div).html(); 
@@ -170,7 +171,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       left = left + leftOffset;
 
       // Remove the element
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
+      // $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
 
       // Author color
       var users = pad.collabClient.getConnectedUsers();
@@ -226,7 +227,10 @@ exports.aceInitialized = function(hook, context){
 
 
 function html_substr( str, count ) {
-
+  if( $.browser.msie ) return ""; // IE can't handle processing any of the X position stuff so just return a blank string
+  // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
+  // only wrap the target / last span or something or stop it destroying and recreating on each change..  
+  // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
   var div = document.createElement('div');
   div.innerHTML = str;
 
@@ -246,14 +250,13 @@ function html_substr( str, count ) {
 
   function walk( el, fn ) {
     var node = el.firstChild;
+    if(!node) return;
     do {
-      if(node.nodeType){
-        if( node.nodeType === 3 ) {
-          fn(node);
-          //          Added this >>------------------------------------<<
-        } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
-          walk( node, fn );
-        }
+      if( node.nodeType === 3 ) {
+        fn(node);
+        //          Added this >>------------------------------------<<
+      } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
+        walk( node, fn );
       }
     } while( node = node.nextSibling );
   }
@@ -284,6 +287,7 @@ function wrap(target, key) { // key can probably be removed here..
       newtarget.append($(newhtml));
     }
     else { // recursion FTW!
+      console.log("recursion"); // IE handles recursion badly
       $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }

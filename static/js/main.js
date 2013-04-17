@@ -227,64 +227,66 @@ exports.aceInitialized = function(hook, context){
 
 function html_substr( str, count ) {
 
-    var div = document.createElement('div');
-    div.innerHTML = str;
+  var div = document.createElement('div');
+  div.innerHTML = str;
 
-    walk( div, track );
+  walk( div, track );
 
-    function track( el ) {
-        if( count > 0 ) {
-            var len = el.data.length;
-            count -= len;
-            if( count <= 0 ) {
-                el.data = el.substringData( 0, el.data.length + count );
-            }
-        } else {
-            el.data = '';
+  function track( el ) {
+    if( count > 0 ) {
+      var len = el.data.length;
+      count -= len;
+      if( count <= 0 ) {
+        el.data = el.substringData( 0, el.data.length + count );
+      }
+    } else {
+      el.data = '';
+    }
+  }
+
+  function walk( el, fn ) {
+    var node = el.firstChild;
+    do {
+      if(node.nodeType){
+        if( node.nodeType === 3 ) {
+          fn(node);
+          //          Added this >>------------------------------------<<
+        } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
+          walk( node, fn );
         }
-    }
-
-    function walk( el, fn ) {
-        var node = el.firstChild;
-        do {
-            if( node.nodeType === 3 ) {
-                fn(node);
-                    //          Added this >>------------------------------------<<
-            } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
-                walk( node, fn );
-            }
-        } while( node = node.nextSibling );
-    }
-    return div.innerHTML;
+      }
+    } while( node = node.nextSibling );
+  }
+  return div.innerHTML;
 }
 
 function wrap(target, key) { // key can probably be removed here..
-    var newtarget = $("<div></div>");
-    nodes = target.contents().clone(); // the clone is critical!
-    if(key === true){ // We can probably remove all of thise..
-      var key = 0; // Key allows us to increemnt an index inside recursion
+ var newtarget = $("<div></div>");
+  nodes = target.contents().clone(); // the clone is critical!
+  if(key === true){ // We can probably remove all of thise..
+    var key = 0; // Key allows us to increemnt an index inside recursion
+  }
+  nodes.each(function() {
+    if (this.nodeType == 3) { // text
+      var newhtml = "";
+      var text = this.wholeText; // maybe "textContent" is better?
+      for (var i=0; i < text.length; i++) {
+        if (text[i] == ' '){
+          newhtml += "<span data-key="+globalKey+"> </span>";
+        }
+        else
+        { 
+          newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
+        }
+        key++;
+        globalKey++;
+      }
+      newtarget.append($(newhtml));
     }
-    nodes.each(function() {
-        if (this.nodeType == 3) { // text
-            var newhtml = "";
-            var text = this.wholeText; // maybe "textContent" is better?
-            for (var i=0; i < text.length; i++) {
-                if (text[i] == ' '){
-                  newhtml += "<span data-key="+globalKey+"> </span>";
-                }
-                else
-                { 
-                  newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
-                }
-                key++;
-                globalKey++;
-            }
-            newtarget.append($(newhtml));
-        }
-        else { // recursion FTW!
-            $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
-            newtarget.append($(this));
-        }
-    });
-    return newtarget.html();
+    else { // recursion FTW!
+      $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
+      newtarget.append($(this));
+    }
+  });
+  return newtarget.html();
 }

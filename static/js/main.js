@@ -171,7 +171,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       left = left + leftOffset;
 
       // Remove the element
-      // $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
+      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
 
       // Author color
       var users = pad.collabClient.getConnectedUsers();

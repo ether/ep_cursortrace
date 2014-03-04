@@ -14,6 +14,7 @@ exports.postAceInit = function(hook_name, args, cb) {
 
 exports.getAuthorClassName = function(author)
 {
+  if(!author) return;
   return "ep_cursortrace-" + author.replace(/[^a-y0-9]/g, function(c)
   {
     if (c == ".") return "-";
@@ -169,6 +170,14 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Add the innerdocbody offset
       left = left + leftOffset;
+
+      // Also add any margin on the div;
+      var divMargin = $(div).css("margin-left")
+      if(divMargin){
+        divMargin = divMargin.replace("px", "");
+        console.log("Adding shit");
+        left = left + parseInt(divMargin);
+      }
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);

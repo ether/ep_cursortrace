@@ -175,7 +175,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       var divMargin = $(div).css("margin-left")
       if(divMargin){
         divMargin = divMargin.replace("px", "");
-        console.log("Adding shit");
         left = left + parseInt(divMargin);
       }
 

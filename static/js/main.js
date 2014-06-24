@@ -107,6 +107,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
     // Get the target Line
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
+    var divWidth = div.width();
 
     // Is the line visible yet?
     if ( div.length !== 0 ) {
@@ -133,7 +134,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       var newText = html_substr(html, (x)); 
 
       // A load of fugly HTML that can prolly be moved ot CSS
-      var newLine = "<span id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
+      var newLine = "<span style='width:"+divWidth+"px' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.
@@ -154,9 +155,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Get the width of the element (This is how far out X is in px);
       if(span.length !== 0){
         var left = span.position().left;
-        left = left + span.width(); // Remember the span here is the stealth span not teh parent span
       }else{
-        var left = $(worker).width();
+        var left = 0;
       }
 
       // Get the height of the element minus the inner line height
@@ -170,15 +170,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Add the innerdocbody offset
       left = left + leftOffset;
-
-      /*
-      // Also add any margin on the div -- this causes a fair amount of pain
-      var divMargin = $(div).css("margin-left")
-      if(divMargin){
-        divMargin = divMargin.replace("px", "");
-        left = left + parseInt(divMargin);
-      }
-      */
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);

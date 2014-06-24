@@ -178,7 +178,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
         divMargin = divMargin.replace("px", "");
         left = left + parseInt(divMargin);
       }
-      /*
+      */
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);

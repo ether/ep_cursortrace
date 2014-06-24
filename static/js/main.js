@@ -171,12 +171,14 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Add the innerdocbody offset
       left = left + leftOffset;
 
-      // Also add any margin on the div;
+      /*
+      // Also add any margin on the div -- this causes a fair amount of pain
       var divMargin = $(div).css("margin-left")
       if(divMargin){
         divMargin = divMargin.replace("px", "");
         left = left + parseInt(divMargin);
       }
+      /*
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);

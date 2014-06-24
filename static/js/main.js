@@ -171,6 +171,25 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Add the innerdocbody offset
       left = left + leftOffset;
 
+      // Add support for page view margins
+      var divMargin = $(div).css("margin-left");
+      var innerdocbodyMargin = $(div).parent().css("margin-left"); 
+      if(innerdocbodyMargin){
+        innerdocbodyMargin = innerdocbodyMargin.replace("px", "");
+        innerdocbodyMargin = parseInt(innerdocbodyMargin);
+      }else{
+        innerdocbodyMargin = 0;
+      }
+      if(divMargin){
+        divMargin = divMargin.replace("px", "");
+        console.log("Margin is ", divMargin);
+        divMargin = parseInt(divMargin);
+        if((divMargin + innerdocbodyMargin) > 0){
+          console.log("divMargin", divMargin);
+          left = left + divMargin;
+        }
+      }
+
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
 

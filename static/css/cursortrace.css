@@ -1,5 +1,6 @@
 .ghettoCursorXPos{
   white-space:pre-wrap;
+  word-wrap:break-word;
   z-index:99999;
   background:red;
   position:fixed;

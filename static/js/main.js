@@ -2,6 +2,28 @@ var initiated = false;
 var last = undefined;
 var padEditor; 
 var globalKey = 0;
+var isFollowing = false;
+
+exports.documentReady = function(){
+  // Set the title
+  $('body').on('mouseover', '#otheruserstable > tbody > tr > td > div', function(){
+    $(this).css("cursor", "pointer");
+    $(this).attr("title", "Watch this author");
+  });
+  // Watch / follow a user
+  $('body').on('click', '#otheruserstable > tbody > tr > td > div', function(){
+    // already watching so stop watching
+    if($(this).hasClass("buttonicon-clearauthorship")){
+      $(this).removeClass("buttonicon buttonicon-clearauthorship");
+      isFollowing = false;
+    }else{
+      isFollowing = $(this).parent().parent().data("authorid");
+      $(this).addClass("buttonicon buttonicon-clearauthorship");
+      $(this).css({"font-size":"12px","color":"#666"});
+    }
+    //  watchUser.toggle();
+  });
+}
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
   args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
@@ -182,7 +204,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       }
       if(divMargin){
         divMargin = divMargin.replace("px", "");
-        console.log("Margin is ", divMargin);
+        // console.log("Margin is ", divMargin);
         divMargin = parseInt(divMargin);
         if((divMargin + innerdocbodyMargin) > 0){
           console.log("divMargin", divMargin);
@@ -218,6 +240,17 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           // Create a new Div for this author
           var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
           $(outBody).append($indicator);
+
+          // Are we following this author?
+          if(isFollowing && isFollowing === value.userId){
+
+            // scroll to the authors location
+            var $inner = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+            var newY = top + "px";
+            $inner.scrollTop(newY); // works in Chrome not FF
+            $inner.animate({scrollTop: newY});
+
+          }
   
           // After a while, fade it out :)
           setTimeout(function(){
@@ -247,7 +280,7 @@ exports.aceInitialized = function(hook, context){
 
 
 function html_substr( str, count ) {
-  if( $.browser.msie ) return ""; // IE can't handle processing any of the X position stuff so just return a blank string
+  if( browser.msie ) return ""; // IE can't handle processing any of the X position stuff so just return a blank string
   // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
   // only wrap the target / last span or something or stop it destroying and recreating on each change..  
   // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
@@ -307,7 +340,7 @@ function wrap(target, key) { // key can probably be removed here..
       newtarget.append($(newhtml));
     }
     else { // recursion FTW!
-      console.log("recursion"); // IE handles recursion badly
+      // console.log("recursion"); // IE handles recursion badly
       $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }

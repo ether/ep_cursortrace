@@ -8,7 +8,8 @@
         "aceInitialized": "ep_cursortrace/static/js/main:aceInitialized",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
-        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
+        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main",
+        "documentReady":"ep_cursortrace/static/js/main"
       },
       "hooks": {
         "handleMessage": "ep_cursortrace/handleMessage"

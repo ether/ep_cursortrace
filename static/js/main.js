@@ -246,9 +246,12 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
             // scroll to the authors location
             var $inner = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+            if(top < 30) top = 0; // top line needs to be left visible
             var newY = top + "px";
-            $inner.scrollTop(newY); // works in Chrome not FF
-            $inner.animate({scrollTop: newY});
+            var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+            var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
+            $outerdoc.animate({scrollTop: newY});
+            if(browser.firefox) $outerdocHTML.animate({scrollTop: newY}); // needed for FF
 
           }
   

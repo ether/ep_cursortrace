@@ -4,9 +4,9 @@
 *
 ****/
 
-var authorManager = require("../../src/node/db/AuthorManager"),
-padMessageHandler = require("../../src/node/handler/PadMessageHandler"),
-            async = require('../../src/node_modules/async');
+var authorManager = require("ep_etherpad-lite/node/db/AuthorManager"),
+padMessageHandler = require("ep_etherpad-lite/node/handler/PadMessageHandler"),
+            async = require('ep_etherpad-lite/node_modules/async');
 
 var buffer = {};
 

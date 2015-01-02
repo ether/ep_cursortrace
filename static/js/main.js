@@ -123,7 +123,12 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
     var x = context.payload.locationX;
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var innerWidth = inner.contents().find('#innerdocbody').width();
-    var leftOffset = $(inner)[0].offsetLeft +3;
+    // it appears on apple devices this might not be set properly?
+    if($(inner)[0]){
+      var leftOffset = $(inner)[0].offsetLeft +3;
+    }else{
+      var leftOffset = 0;
+    }
     var stickUp = false;
     var stickLeft = true;
 

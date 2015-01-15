@@ -212,7 +212,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
         // console.log("Margin is ", divMargin);
         divMargin = parseInt(divMargin);
         if((divMargin + innerdocbodyMargin) > 0){
-          console.log("divMargin", divMargin);
+          // console.log("divMargin", divMargin);
           left = left + divMargin;
         }
       }

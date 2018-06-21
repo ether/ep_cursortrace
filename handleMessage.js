@@ -10,20 +10,20 @@ padMessageHandler = require("ep_etherpad-lite/node/handler/PadMessageHandler"),
 
 var buffer = {};
 
-/* 
+/*
 * Handle incoming messages from clients
 */
 exports.handleMessage = function(hook_name, context, callback){
   // Firstly ignore any request that aren't about cursor
   var iscursorMessage = false;
   if(context){
-    if(context.message && context.message){
+    if(context.message){
       if(context.message.type === 'COLLABROOM'){
-        if(context.message.data){ 
+        if(context.message.data){
           if(context.message.data.type){
             if(context.message.data.type === 'cursor'){
               iscursorMessage = true;
-            } 
+            }
           }
         }
       }
@@ -48,7 +48,7 @@ exports.handleMessage = function(hook_name, context, callback){
 
       var msg = {
         type: "COLLABROOM",
-        data: { 
+        data: {
           type: "CUSTOM",
           payload: {
             action: "cursorPosition",
@@ -64,11 +64,7 @@ exports.handleMessage = function(hook_name, context, callback){
     });
   }
 
-  if(iscursorMessage === true){
-    callback([null]);
-  }else{
-    callback(true);
-  }
+  callback([null]);
 }
 
 

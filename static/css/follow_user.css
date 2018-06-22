@@ -1,0 +1,29 @@
+#otheruserstable > tbody > tr > td > div:hover {
+  cursor: pointer;
+}
+
+.follow-user:before {
+  content: "\e80d";
+  color: #666;
+}
+
+/* based on .buttonicon styles */
+.follow-user {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  border: none;
+  padding: 0;
+  background: none;
+  font-family: "fontawesome-etherpad";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.follow-user::-moz-focus-inner {
+  padding: 0;
+  border: 0;
+}

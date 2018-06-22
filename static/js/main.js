@@ -1,33 +1,9 @@
+var $ = require('ep_etherpad-lite/static/js/rjquery').$;
+var follow_user = require('./follow_user');
+
 var initiated = false;
 var last = undefined;
 var globalKey = 0;
-var isFollowing = false;
-
-exports.documentReady = function(){
-  // Set the title
-  $('body').on('mouseover', '#otheruserstable > tbody > tr > td > div', function(){
-    $(this).css("cursor", "pointer");
-    $(this).attr("title", "Watch this author");
-  });
-  // Watch / follow a user
-  $('body').on('click', '#otheruserstable > tbody > tr > td > div', function(){
-    // already watching so stop watching
-    if($(this).hasClass("buttonicon-clearauthorship")){
-      $(this).removeClass("buttonicon buttonicon-clearauthorship");
-      isFollowing = false;
-    }else{
-      isFollowing = $(this).parent().parent().data("authorid");
-      $(this).addClass("buttonicon buttonicon-clearauthorship");
-      $(this).css({"font-size":"12px","color":"#666"});
-    }
-    //  watchUser.toggle();
-  });
-}
-
-exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
-  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
-  return cb();
-};
 
 exports.postAceInit = function(hook_name, args, cb) {
   initiated = true;
@@ -71,10 +47,8 @@ exports.aceEditEvent = function(hook_name, args, cb) {
     var Y = args.rep.selStart[0];
     var X = args.rep.selStart[1];
     if (!last || Y != last[0] || X != last[1]) { // If the position has changed
-      var cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
       var myAuthorId = pad.getUserId();
       var padId = pad.getPadId();
-      var location = {y: Y, x: X};
       // Create a cursor position message to send to the server
       var message = {
         type : 'cursor',
@@ -102,21 +76,15 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
   var padId = context.payload.padId;
   var authorId = context.payload.authorId;
   if(pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
-  var authorClass = exports.getAuthorClassName(authorId);
 
   if(action === 'cursorPosition'){ // an author has sent this client a cursor position, we need to show it in the dom
-
-    var authorName = decodeURI(escape(context.payload.authorName));
-    if(authorName == "null"){
-      var authorName = "&#9785;" // If the users username isn't set then display a smiley face
-    }
     var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     var x = context.payload.locationX;
-    var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    var innerWidth = inner.contents().find('#innerdocbody').width();
+    var $inner = $('iframe[name="ace_outer"]').contents().find('iframe');
+    var innerWidth = $inner.contents().find('#innerdocbody').width();
     // it appears on apple devices this might not be set properly?
-    if($(inner)[0]){
-      var leftOffset = $(inner)[0].offsetLeft +3;
+    if($inner[0]){
+      var leftOffset = $inner[0].offsetLeft +3;
     }else{
       var leftOffset = 0;
     }
@@ -189,22 +157,11 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       left = left + leftOffset;
 
       // Add support for page view margins
-      var divMargin = $(div).css("margin-left");
-      var innerdocbodyMargin = $(div).parent().css("margin-left");
-      if(innerdocbodyMargin){
-        innerdocbodyMargin = innerdocbodyMargin.replace("px", "");
-        innerdocbodyMargin = parseInt(innerdocbodyMargin);
-      }else{
-        innerdocbodyMargin = 0;
-      }
-      if(divMargin){
-        divMargin = divMargin.replace("px", "");
-        // console.log("Margin is ", divMargin);
-        divMargin = parseInt(divMargin);
-        if((divMargin + innerdocbodyMargin) > 0){
-          // console.log("divMargin", divMargin);
-          left = left + divMargin;
-        }
+      var divMargin = parseCssInteger($(div).css("margin-left"));
+      var divPadding = parseCssInteger($(div).css("padding-left"));
+      var innerdocbodyMargin = parseCssInteger($(div).parent().css("margin-left"));
+      if((divMargin + divPadding + innerdocbodyMargin) > 0){
+        left = left + divMargin + divPadding;
       }
 
       // Remove the element
@@ -214,38 +171,33 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       var users = pad.collabClient.getConnectedUsers();
       $.each(users, function(user, value){
         if(value.userId == authorId){
+          var authorClass = exports.getAuthorClassName(authorId);
           var colors = pad.getColorPalette(); // support non set colors
-          if(colors[value.colorId]){
-            var color = colors[value.colorId];
-          }else{
-            var color = value.colorId; // Test for XSS
-          }
-          var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-          var span = $(div).contents().find("span:first");
+          var color = colors[value.colorId] || value.colorId; // Test for XSS
+          var $outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
 
           // Remove all divs that already exist for this author
-          $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
+          $outBody.find(".caret-"+authorClass).remove();
 
           // Location of stick direction IE up or down
-          if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
+          var location = stickUp ? 'stickUp' : 'stickDown';
+
+          var authorName = decodeURI(escape(context.payload.authorName));
+          if(authorName == "null"){
+            var authorName = "&#9785;" // If the users username isn't set then display a smiley face
+          }
 
           // Create a new Div for this author
-          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
-          $(outBody).append($indicator);
+          var classes = "class='caretindicator " + location + " caret-" + authorClass + "'";
+          var styles = "style='height:16px;left:" + left + "px;top:" + top +"px;background-color:" + color + "'";
+          var $indicator = $("<div " + classes + " " + styles + " title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
+          $outBody.append($indicator);
 
           // Are we following this author?
-          if(isFollowing && isFollowing === value.userId){
-
-            // scroll to the authors location
-            var $inner = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+          if(follow_user.isFollowingUser(value.userId)) {
             if(top < 30) top = 0; // top line needs to be left visible
-            var newY = top + "px";
-            var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-            var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
-            // works on earlier versions of Chrome (< 61)
-            $outerdoc.animate({scrollTop: newY});
-            // works on Firefox & later versions of Chrome (>= 61)
-            $outerdocHTML.animate({scrollTop: newY});
+            // scroll to the authors location
+            scrollTo(top);
           }
 
           // After a while, fade it out :)
@@ -258,6 +210,23 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       });
     }
   }
+}
+
+var parseCssInteger = function(str) {
+  str = str || '0px';
+  str = str.replace("px", "");
+  return parseInt(str);
+}
+
+var scrollTo = function(top) {
+  var newY = top + "px";
+  var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
+  var $outerdocHTML = $outerdoc.parent();
+
+  // works on earlier versions of Chrome (< 61)
+  $outerdoc.animate({scrollTop: newY});
+  // works on Firefox & later versions of Chrome (>= 61)
+  $outerdocHTML.animate({scrollTop: newY});
 }
 
 function html_substr( str, count ) {

@@ -4,13 +4,14 @@
       "name": "cursortrace",
       "client_hooks": {
         "aceEditorCSS": "ep_cursortrace/static/js/css",
-        "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
+        "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/css",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
         "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main",
-        "documentReady":"ep_cursortrace/static/js/main"
+        "documentReady":"ep_cursortrace/static/js/follow_user"
       },
       "hooks": {
+        "eejsBlock_styles": "ep_cursortrace/css",
         "handleMessage": "ep_cursortrace/handleMessage"
       }
     }

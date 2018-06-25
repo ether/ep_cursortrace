@@ -1,6 +1,5 @@
 var initiated = false;
 var last = undefined;
-var padEditor; 
 var globalKey = 0;
 var isFollowing = false;
 
@@ -64,14 +63,6 @@ exports.className2Author = function(className)
   return null;
 }
 
-var lineAndColumnFromChar = function(x)
-{
-  var lineEntry = rep.lines.atOffset(x);
-  var lineStart = rep.lines.offsetOfEntry(lineEntry);
-  var lineNum = rep.lines.indexOfEntry(lineEntry);
-  return [lineNum, x - lineStart];
-}
-
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
   // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
@@ -96,7 +87,7 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       last = [];
       last[0] = Y;
       last[1] = X;
-      
+
       // console.log("Sent message", message);
       pad.collabClient.sendMessage(message);  // Send the cursor position message to the server
     }
@@ -130,7 +121,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       var leftOffset = 0;
     }
     var stickUp = false;
-    var stickLeft = true;
 
     // Get the target Line
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
@@ -149,31 +139,31 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Due to IE sucking this doesn't work in IE....
 
       // Get the HTML
-      var html = $(div).html(); 
+      var html = $(div).html();
 
       // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-      var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId); 
+      var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId);
 
       // if Div contains block attribute IE h1 or H2 then increment by the number
       if ( $(div).children("span").length < 1 ){ x = x - 1; }// This is horrible but a limitation because I'm parsing HTML
 
       // Get the new string but maintain mark up
-      var newText = html_substr(html, (x)); 
+      var newText = html_substr(html, (x));
 
-      // A load of fugly HTML that can prolly be moved ot CSS
+      // A load of ugly HTML that can prolly be moved to CSS
       var newLine = "<span style='width:"+divWidth+"px' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.
 
       // Add the HTML to the DOM
-      var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
+      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
 
       // Get the worker element
       var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
 
-      // Wrap teh HTML in spans so we cna find a char
-      $(worker).html(wrap($(worker), true));
+      // Wrap the HTML in spans so we can find a char
+      $(worker).html(wrap($(worker)));
       // console.log($(worker).html(), x);
 
       // Get the Left offset of the x span
@@ -200,7 +190,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Add support for page view margins
       var divMargin = $(div).css("margin-left");
-      var innerdocbodyMargin = $(div).parent().css("margin-left"); 
+      var innerdocbodyMargin = $(div).parent().css("margin-left");
       if(innerdocbodyMargin){
         innerdocbodyMargin = innerdocbodyMargin.replace("px", "");
         innerdocbodyMargin = parseInt(innerdocbodyMargin);
@@ -232,16 +222,13 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           }
           var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
           var span = $(div).contents().find("span:first");
-  
+
           // Remove all divs that already exist for this author
           $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
-  
+
           // Location of stick direction IE up or down
           if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
-  
-          // Location of stick direction IE up or down
-          if(stickLeft){var locationLR = 'stickLeft';}else{var locationLR = 'stickRight';}
-  
+
           // Create a new Div for this author
           var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
           $(outBody).append($indicator);
@@ -255,11 +242,12 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
             var newY = top + "px";
             var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
             var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
+            // works on earlier versions of Chrome (< 61)
             $outerdoc.animate({scrollTop: newY});
-            if(browser.firefox) $outerdocHTML.animate({scrollTop: newY}); // needed for FF
-
+            // works on Firefox & later versions of Chrome (>= 61)
+            $outerdocHTML.animate({scrollTop: newY});
           }
-  
+
           // After a while, fade it out :)
           setTimeout(function(){
             $indicator.fadeOut(500, function(){
@@ -267,30 +255,15 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
             });
           }, 2000);
         }
-      });     
+      });
     }
   }
 }
 
-
-
-
-/***
- * 
- *  Once ace is initialized, we bind the functions to the context
- * 
- ***/
-
-exports.aceInitialized = function(hook, context){
-  var editorInfo = context.editorInfo;
-  padEditor = context.editorInfo.editor;
-}
-
-
 function html_substr( str, count ) {
   if( browser.msie ) return ""; // IE can't handle processing any of the X position stuff so just return a blank string
   // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
-  // only wrap the target / last span or something or stop it destroying and recreating on each change..  
+  // only wrap the target / last span or something or stop it destroying and recreating on each change..
   // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
   var div = document.createElement('div');
   div.innerHTML = str;
@@ -324,12 +297,10 @@ function html_substr( str, count ) {
   return div.innerHTML;
 }
 
-function wrap(target, key) { // key can probably be removed here..
+function wrap(target) {
  var newtarget = $("<div></div>");
   nodes = target.contents().clone(); // the clone is critical!
-  if(key === true){ // We can probably remove all of thise..
-    var key = 0; // Key allows us to increemnt an index inside recursion
-  }
+
   nodes.each(function() {
     if (this.nodeType == 3) { // text
       var newhtml = "";
@@ -339,17 +310,16 @@ function wrap(target, key) { // key can probably be removed here..
           newhtml += "<span data-key="+globalKey+"> </span>";
         }
         else
-        { 
+        {
           newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
         }
-        key++;
         globalKey++;
       }
       newtarget.append($(newhtml));
     }
     else { // recursion FTW!
       // console.log("recursion"); // IE handles recursion badly
-      $(this).html(wrap($(this), key)); // This really hurts doing any sort of count..
+      $(this).html(wrap($(this))); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }
   });

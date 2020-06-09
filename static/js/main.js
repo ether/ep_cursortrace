@@ -114,12 +114,11 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
     var x = context.payload.locationX;
     var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     var innerWidth = inner.contents().find('#innerdocbody').width();
-    // it appears on apple devices this might not be set properly?
-    if($(inner)[0]){
-      var leftOffset = $(inner)[0].offsetLeft +3;
-    }else{
-      var leftOffset = 0;
+    if(inner.length !== 0){
+      var leftOffset = parseInt($(inner).offset().left);
+      leftOffset = leftOffset + parseInt($(inner).css('padding-left'));
     }
+
     var stickUp = false;
 
     // Get the target Line
@@ -128,7 +127,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
     var divWidth = div.width();
     // Is the line visible yet?
     if ( div.length !== 0 ) {
-      var top = $(div).offset().top -10; // A standard generic offset
+      var top = $(div).offset().top; // A standard generic offset
       // The problem we have here is we don't know the px X offset of the caret from the user
       // Because that's a blocker for now lets just put a nice little div on the left hand side..
       // SO here is how we do this..
@@ -137,6 +136,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       // Delete everything after X chars
       // Measure the new width -- This gives us the offset without modifying the ACE Dom
       // Due to IE sucking this doesn't work in IE....
+
+      // We need the offset of the innerdocbody on top too.
+      top = top + parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
 
       // Get the HTML
       var html = $(div).html();
@@ -173,12 +175,13 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       if(span.length !== 0){
         var left = span.position().left;
       }else{
+        // empty span.
         var left = 0;
       }
 
       // Get the height of the element minus the inner line height
       var height = worker.height(); // the height of the worker
-      top = top + height - span.height(); // plus the top offset minus the actual height of our focus span
+      top = top + height - (span.height() || 12); // plus the top offset minus the actual height of our focus span
       if(top <= 0){  // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
         top = top + (span.height()*2);
@@ -190,9 +193,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // Add support for page view margins
       var divMargin = $(div).css("margin-left");
-      var innerdocbodyMargin = $(div).parent().css("margin-left");
+      var innerdocbodyMargin = $(div).parent().css("padding-left");
       if(innerdocbodyMargin){
-        innerdocbodyMargin = innerdocbodyMargin.replace("px", "");
         innerdocbodyMargin = parseInt(innerdocbodyMargin);
       }else{
         innerdocbodyMargin = 0;
@@ -206,7 +208,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           left = left + divMargin;
         }
       }
-      left = left+20;
+      left = left+18;
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
@@ -231,7 +233,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
 
           // Create a new Div for this author
-          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='"+location+"'>"+authorName+"</p></div>");
+          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='stickp "+location+"'></p></div>");
+          $indicator.find("p").text(authorName);
           $(outBody).append($indicator);
 
           // Are we following this author?
@@ -244,6 +247,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
             var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
             var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
             // works on earlier versions of Chrome (< 61)
+            console.log("newY", newY)
             $outerdoc.animate({scrollTop: newY});
             // works on Firefox & later versions of Chrome (>= 61)
             $outerdocHTML.animate({scrollTop: newY});

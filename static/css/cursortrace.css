@@ -52,7 +52,7 @@ p.stickUp{
 p.stickDown{
   position:relative;
   top:2px;
-  margin-top:-23px;
+  margin-top:-28px;
   padding-left:4px;
   padding-right:4px;
 }
@@ -63,4 +63,11 @@ p.caretindicator{
   margin-top:-24px;
   padding-left:4px;
   padding-right:4px;
+}
+
+.stickp{
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

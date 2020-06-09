@@ -5,20 +5,20 @@ var isFollowing = false;
 
 exports.documentReady = function(){
   // Set the title
-  $('body').on('mouseover', '#otheruserstable > tbody > tr > td > div', function(){
+  $('body').on('mouseover', '#otheruserstable > tbody > tr', function(){
     $(this).css("cursor", "pointer");
     $(this).attr("title", "Follow this author");
   });
   // Watch / follow a user
-  $('body').on('click', '#otheruserstable > tbody > tr > td > div', function(){
+  $('body').on('click', '#otheruserstable > tbody > tr', function(){
     // already watching so stop watching
     if($(this).hasClass("buttonicon-clearauthorship")){
-      $(this).removeClass("buttonicon buttonicon-clearauthorship");
+      $(this).find("td > div").removeClass("buttonicon buttonicon-clearauthorship");
       isFollowing = false;
     }else{
-      isFollowing = $(this).parent().parent().data("authorid");
-      $(this).text("W");
-      $(this).css({"font-size":"12px","color":"#666","padding-left":"3px"});
+      isFollowing = $(this).data("authorid");
+      $(this).find("td > div").text("👁");
+      $(this).find("td > div").css({"font-size":"12px","color":"#666","line-height":"17px","padding-left":"3px"});
     }
     //  watchUser.toggle();
   });
@@ -247,7 +247,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
             var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
             var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
             // works on earlier versions of Chrome (< 61)
-            console.log("newY", newY)
             $outerdoc.animate({scrollTop: newY});
             // works on Firefox & later versions of Chrome (>= 61)
             $outerdocHTML.animate({scrollTop: newY});

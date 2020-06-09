@@ -7,7 +7,6 @@
   top:80px;
   left:33px;
   margin-right:10px;
-  font-size:12px;
   line-height:16px; /* Prolly breaks H1 etc */
 }
 
@@ -23,7 +22,7 @@ div.stickUp:before{
   content: "";
   display: block;
   width: 2px;
-  height: 23px;
+  height: 28px;
   background-color: black;
   opacity:.5;
   margin-left:-2px;
@@ -65,4 +64,3 @@ p.caretindicator{
   padding-left:4px;
   padding-right:4px;
 }
-

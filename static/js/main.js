@@ -124,6 +124,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
     // Get the target Line
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
+
     var divWidth = div.width();
     // Is the line visible yet?
     if ( div.length !== 0 ) {
@@ -205,6 +206,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           left = left + divMargin;
         }
       }
+      left = left+20;
 
       // Remove the element
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
@@ -249,9 +251,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
           // After a while, fade it out :)
           setTimeout(function(){
-            $indicator.fadeOut(500, function(){
-              $indicator.remove();
-            });
+            // $indicator.fadeOut(500, function(){
+              //$indicator.remove();
+            // });
           }, 2000);
         }
       });

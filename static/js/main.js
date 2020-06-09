@@ -7,7 +7,7 @@ exports.documentReady = function(){
   // Set the title
   $('body').on('mouseover', '#otheruserstable > tbody > tr > td > div', function(){
     $(this).css("cursor", "pointer");
-    $(this).attr("title", "Watch this author");
+    $(this).attr("title", "Follow this author");
   });
   // Watch / follow a user
   $('body').on('click', '#otheruserstable > tbody > tr > td > div', function(){
@@ -17,8 +17,8 @@ exports.documentReady = function(){
       isFollowing = false;
     }else{
       isFollowing = $(this).parent().parent().data("authorid");
-      $(this).addClass("buttonicon buttonicon-clearauthorship");
-      $(this).css({"font-size":"12px","color":"#666"});
+      $(this).text("W");
+      $(this).css({"font-size":"12px","color":"#666","padding-left":"3px"});
     }
     //  watchUser.toggle();
   });
@@ -125,7 +125,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
     // Get the target Line
     var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
     var divWidth = div.width();
-
     // Is the line visible yet?
     if ( div.length !== 0 ) {
       var top = $(div).offset().top -10; // A standard generic offset

@@ -13,7 +13,7 @@ var buffer = {};
 /*
 * Handle incoming messages from clients
 */
-exports.handleMessage = function(hook_name, context, callback){
+exports.handleMessage = async function(hook_name, context, callback){
   // Firstly ignore any request that aren't about cursor
   var iscursorMessage = false;
   if(context){
@@ -44,24 +44,23 @@ exports.handleMessage = function(hook_name, context, callback){
      * myAuthorId -- The Id of the author who is trying to talk to the targetAuthorId
   ***/
   if(message.action === 'cursorPosition'){
-    authorManager.getAuthorName(message.myAuthorId, function(er, authorName){ // Get the authorname
+    var authorName = await authorManager.getAuthorName(message.myAuthorId);
 
-      var msg = {
-        type: "COLLABROOM",
-        data: {
-          type: "CUSTOM",
-          payload: {
-            action: "cursorPosition",
-            authorId: message.myAuthorId,
-            authorName: authorName,
-            padId: message.padId,
-            locationX: message.locationX,
-            locationY: message.locationY
-          }
+    var msg = {
+      type: "COLLABROOM",
+      data: {
+        type: "CUSTOM",
+        payload: {
+          action: "cursorPosition",
+          authorId: message.myAuthorId,
+          authorName: authorName,
+          padId: message.padId,
+          locationX: message.locationX,
+          locationY: message.locationY
         }
-      };
-      sendToRoom(message, msg);
-    });
+      }
+    };
+    sendToRoom(message, msg);
   }
 
   callback([null]);

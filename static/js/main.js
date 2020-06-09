@@ -106,9 +106,9 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
   if(action === 'cursorPosition'){ // an author has sent this client a cursor position, we need to show it in the dom
 
-    var authorName = decodeURI(escape(context.payload.authorName));
+    var authorName = context.payload.authorName;
     if(authorName == "null"){
-      var authorName = "&#9785;" // If the users username isn't set then display a smiley face
+      var authorName = "😊" // If the users username isn't set then display a smiley face
     }
     var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     var x = context.payload.locationX;
@@ -233,7 +233,8 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
 
           // Create a new Div for this author
-          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"' title="+authorName+"><p class='stickp "+location+"'></p></div>");
+          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"'><p class='stickp "+location+"'></p></div>");
+          $indicator.attr("title", authorName);
           $indicator.find("p").text(authorName);
           $(outBody).append($indicator);
 

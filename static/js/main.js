@@ -1,27 +1,8 @@
 var initiated = false;
 var last = undefined;
 var globalKey = 0;
-var isFollowing = false;
 
 exports.documentReady = function(){
-  // Set the title
-  $('body').on('mouseover', '#otheruserstable > tbody > tr', function(){
-    $(this).css("cursor", "pointer");
-    $(this).attr("title", "Follow this author");
-  });
-  // Watch / follow a user
-  $('body').on('click', '#otheruserstable > tbody > tr', function(){
-    // already watching so stop watching
-    if($(this).hasClass("buttonicon-clearauthorship")){
-      $(this).find("td > div").removeClass("buttonicon buttonicon-clearauthorship");
-      isFollowing = false;
-    }else{
-      isFollowing = $(this).data("authorid");
-      $(this).find("td > div").text("👁");
-      $(this).find("td > div").css({"font-size":"12px","color":"#666","line-height":"17px","padding-left":"3px"});
-    }
-    //  watchUser.toggle();
-  });
 }
 
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
@@ -237,21 +218,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
           $indicator.attr("title", authorName);
           $indicator.find("p").text(authorName);
           $(outBody).append($indicator);
-
-          // Are we following this author?
-          if(isFollowing && isFollowing === value.userId){
-
-            // scroll to the authors location
-            var $inner = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-            if(top < 30) top = 0; // top line needs to be left visible
-            var newY = top + "px";
-            var $outerdoc = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-            var $outerdocHTML = $('iframe[name="ace_outer"]').contents().find("#outerdocbody").parent();
-            // works on earlier versions of Chrome (< 61)
-            $outerdoc.animate({scrollTop: newY});
-            // works on Firefox & later versions of Chrome (>= 61)
-            $outerdocHTML.animate({scrollTop: newY});
-          }
 
           // After a while, fade it out :)
           setTimeout(function(){

@@ -2,9 +2,6 @@ var initiated = false;
 var last = undefined;
 var globalKey = 0;
 
-exports.documentReady = function(){
-}
-
 exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
   args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
   return cb();
@@ -12,6 +9,7 @@ exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
 
 exports.postAceInit = function(hook_name, args, cb) {
   initiated = true;
+  return cb();
 };
 
 exports.getAuthorClassName = function(author)
@@ -73,6 +71,7 @@ exports.aceEditEvent = function(hook_name, args, cb) {
       pad.collabClient.sendMessage(message);  // Send the cursor position message to the server
     }
   }
+  return cb();
 }
 
 exports.handleClientMessage_CUSTOM = function(hook, context, cb){
@@ -229,6 +228,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
       });
     }
   }
+  return cb();
 }
 
 function html_substr( str, count ) {

@@ -13,28 +13,12 @@ var buffer = {};
 /*
 * Handle incoming messages from clients
 */
-exports.handleMessage = async function(hook_name, context, callback){
+exports.handleMessage = async function(hookName, context) {
   // Firstly ignore any request that aren't about cursor
-  var iscursorMessage = false;
-  if(context){
-    if(context.message){
-      if(context.message.type === 'COLLABROOM'){
-        if(context.message.data){
-          if(context.message.data.type){
-            if(context.message.data.type === 'cursor'){
-              iscursorMessage = true;
-            }
-          }
-        }
-      }
-    }
-  }
-  if(!iscursorMessage){
-    callback(false);
-    return false;
-  }
+  const {message: {type, data = {}} = {}} = context || {};
+  if (type !== 'COLLABROOM' || data.type !== 'cursor') return;
 
-  var message = context.message.data;
+  const message = data;
   /***
     What's available in a message?
      * action -- The action IE cursorPosition
@@ -63,7 +47,7 @@ exports.handleMessage = async function(hook_name, context, callback){
     sendToRoom(message, msg);
   }
 
-  callback([null]);
+  return null;  // null prevents Etherpad from attempting to process the message any further.
 }
 
 

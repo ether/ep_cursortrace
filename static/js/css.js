@@ -4,5 +4,4 @@ exports.eejsBlock_styles = function (hook_name, args, cb) {
   return cb();
 }
 */
-exports.aceEditorCSS = function(hook_name, cb){return ["/ep_cursortrace/static/css/cursortrace.css"];} // inner pad CSS
-
+exports.aceEditorCSS = function (hook_name, cb) { return ['/ep_cursortrace/static/css/cursortrace.css']; }; // inner pad CSS

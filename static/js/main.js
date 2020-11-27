@@ -7,7 +7,7 @@ let globalKey = 0;
 exports.aceInitInnerdocbodyHead = (hook_name, args, cb) => {
   const path = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
   args.iframeHTML.push(
-    `<link rel="stylesheet" type="text/css" href="${path}"/>`);
+      `<link rel="stylesheet" type="text/css" href="${path}"/>`);
   return cb();
 };
 

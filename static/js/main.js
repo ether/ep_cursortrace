@@ -1,9 +1,13 @@
-var initiated = false;
-var last = undefined;
-var globalKey = 0;
+'use strict';
 
-exports.aceInitInnerdocbodyHead = function (hook_name, args, cb) {
-  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
+let initiated = false;
+let last = undefined;
+let globalKey = 0;
+
+exports.aceInitInnerdocbodyHead = (hook_name, args, cb) => {
+  const path = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
+  args.iframeHTML.push(
+    `<link rel="stylesheet" type="text/css" href="${path}"/>`);
   return cb();
 };
 
@@ -12,12 +16,13 @@ exports.postAceInit = function (hook_name, args, cb) {
   return cb();
 };
 
-exports.getAuthorClassName = function (author) {
-  if (!author) return;
-  return `ep_cursortrace-${author.replace(/[^a-y0-9]/g, (c) => {
-    if (c == '.') return '-';
+exports.getAuthorClassName = (author) => {
+  if (!author) return false;
+  const authorId = author.replace(/[^a-y0-9]/g, (c) => {
+    if (c === '.') return '-';
     return `z${c.charCodeAt(0)}z`;
-  })}`;
+  });
+  return `ep_real_time_chat-${authorId}`;
 };
 
 exports.className2Author = function (className) {

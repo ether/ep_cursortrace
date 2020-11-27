@@ -14,19 +14,16 @@ exports.postAceInit = function (hook_name, args, cb) {
 
 exports.getAuthorClassName = function (author) {
   if (!author) return;
-  return 'ep_cursortrace-' + author.replace(/[^a-y0-9]/g, (c)
-  => {
+  return `ep_cursortrace-${author.replace(/[^a-y0-9]/g, (c) => {
     if (c == '.') return '-';
-    return `z${  c.charCodeAt(0)  }z`;
-  });
+    return `z${c.charCodeAt(0)}z`;
+  })}`;
 };
 
 exports.className2Author = function (className) {
   if (className.substring(0, 15) == 'ep_cursortrace-') {
-    return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, (cc)
-    => {
-      if (cc == '-') {return '.';}
-      else if (cc.charAt(0) == 'z') {
+    return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, (cc) => {
+      if (cc == '-') { return '.'; } else if (cc.charAt(0) == 'z') {
         return String.fromCharCode(Number(cc.slice(1, -1)));
       } else {
         return cc;
@@ -39,23 +36,23 @@ exports.className2Author = function (className) {
 exports.aceEditEvent = function (hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
   // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
-  let caretMoving = ((args.callstack.editEvent.eventType == 'handleClick') || (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
+  const caretMoving = ((args.callstack.editEvent.eventType == 'handleClick') || (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
   if (caretMoving && initiated) { // Note that we have to use idle timer to get the mouse position
-    let Y = args.rep.selStart[0];
-    let X = args.rep.selStart[1];
+    const Y = args.rep.selStart[0];
+    const X = args.rep.selStart[1];
     if (!last || Y != last[0] || X != last[1]) { // If the position has changed
-      let cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
-      let myAuthorId = pad.getUserId();
-      let padId = pad.getPadId();
-      let location = {y: Y, x: X};
+      const cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
+      const myAuthorId = pad.getUserId();
+      const padId = pad.getPadId();
+      const location = {y: Y, x: X};
       // Create a cursor position message to send to the server
-      let message = {
+      const message = {
         type: 'cursor',
         action: 'cursorPosition',
         locationY: Y,
         locationX: X,
         padId,
-        myAuthorId
+        myAuthorId,
       };
       last = [];
       last[0] = Y;
@@ -72,21 +69,21 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
   /* I NEED A REFACTOR, please */
   // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
 
-  let action = context.payload.action;
-  let padId = context.payload.padId;
-  let authorId = context.payload.authorId;
+  const action = context.payload.action;
+  const padId = context.payload.padId;
+  const authorId = context.payload.authorId;
   if (pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
-  let authorClass = exports.getAuthorClassName(authorId);
+  const authorClass = exports.getAuthorClassName(authorId);
 
   if (action === 'cursorPosition') { // an author has sent this client a cursor position, we need to show it in the dom
     var authorName = context.payload.authorName;
     if (authorName == 'null') {
-      var authorName = '😊' // If the users username isn't set then display a smiley face
+      var authorName = '😊'; // If the users username isn't set then display a smiley face
     }
-    let y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
+    const y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     let x = context.payload.locationX;
-    let inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    let innerWidth = inner.contents().find('#innerdocbody').width();
+    const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
+    const innerWidth = inner.contents().find('#innerdocbody').width();
     if (inner.length !== 0) {
       var leftOffset = parseInt($(inner).offset().left);
       leftOffset += parseInt($(inner).css('padding-left'));
@@ -95,9 +92,9 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
     let stickUp = false;
 
     // Get the target Line
-    let div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find('div:nth-child('+y + ")");
+    const div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find(`div:nth-child(${y})`);
 
-    let divWidth = div.width();
+    const divWidth = div.width();
     // Is the line visible yet?
     if (div.length !== 0) {
       let top = $(div).offset().top; // A standard generic offset
@@ -114,19 +111,19 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
 
       // Get the HTML
-      let html = $(div).html();
+      const html = $(div).html();
 
       // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-      let authorWorker = 'hiddenUgly' + exports.getAuthorClassName(authorId);
+      const authorWorker = `hiddenUgly${exports.getAuthorClassName(authorId)}`;
 
       // if Div contains block attribute IE h1 or H2 then increment by the number
       if ($(div).children('span').length < 1) { x -= 1; }// This is horrible but a limitation because I'm parsing HTML
 
       // Get the new string but maintain mark up
-      let newText = html_substr(html, (x));
+      const newText = html_substr(html, (x));
 
       // A load of ugly HTML that can prolly be moved to CSS
-      let newLine = `<span style='width:${divWidth}px' id='${  authorWorker  }' class='ghettoCursorXPos'>${newText}</span>`;
+      const newLine = `<span style='width:${divWidth}px' id='${authorWorker}' class='ghettoCursorXPos'>${newText}</span>`;
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.
@@ -135,14 +132,14 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
 
       // Get the worker element
-      let worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find('#' + authorWorker);
+      const worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find(`#${authorWorker}`);
 
       // Wrap the HTML in spans so we can find a char
       $(worker).html(wrap($(worker)));
       // console.log($(worker).html(), x);
 
       // Get the Left offset of the x span
-      let span = $(worker).find('[data-key='+(x - 1) + "]");
+      const span = $(worker).find(`[data-key=${x - 1}]`);
 
       // Get the width of the element (This is how far out X is in px);
       if (span.length !== 0) {
@@ -153,11 +150,11 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
       }
 
       // Get the height of the element minus the inner line height
-      let height = worker.height(); // the height of the worker
+      const height = worker.height(); // the height of the worker
       top = top + height - (span.height() || 12); // plus the top offset minus the actual height of our focus span
       if (top <= 0) { // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
-        top += (span.height()*2);
+        top += (span.height() * 2);
         if (top < 0) { top = 0; } // handle case where caret is in 0,0
       }
 
@@ -181,39 +178,39 @@ exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
           left += divMargin;
         }
       }
-      left +=18;
+      left += 18;
 
       // Remove the element
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove('#' + authorWorker);
+      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove(`#${authorWorker}`);
 
       // Author color
-      let users = pad.collabClient.getConnectedUsers();
-      $.each(users, (user, value)=> {
+      const users = pad.collabClient.getConnectedUsers();
+      $.each(users, (user, value) => {
         if (value.userId == authorId) {
-          let colors = pad.getColorPalette(); // support non set colors
+          const colors = pad.getColorPalette(); // support non set colors
           if (colors[value.colorId]) {
             var color = colors[value.colorId];
           } else {
             var color = value.colorId; // Test for XSS
           }
-          let outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
-          let span = $(div).contents().find('span:first');
+          const outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
+          const span = $(div).contents().find('span:first');
 
           // Remove all divs that already exist for this author
-          $('iframe[name="ace_outer"]').contents().find('.caret-'+authorClass).remove();
+          $('iframe[name="ace_outer"]').contents().find(`.caret-${authorClass}`).remove();
 
           // Location of stick direction IE up or down
           if (stickUp) { var location = 'stickUp'; } else { var location = 'stickDown'; }
 
           // Create a new Div for this author
-          let $indicator = $(`<div class='caretindicator ${ location } caret-${authorClass}' style='height:16px;left:${left}px;top:${top }px;background-color:${color}'><p class='stickp ${location}'></p></div>`);
+          const $indicator = $(`<div class='caretindicator ${location} caret-${authorClass}' style='height:16px;left:${left}px;top:${top}px;background-color:${color}'><p class='stickp ${location}'></p></div>`);
           $indicator.attr('title', authorName);
           $indicator.find('p').text(authorName);
           $(outBody).append($indicator);
 
           // After a while, fade it out :)
-          setTimeout(()=> {
-            $indicator.fadeOut(500, ()=> {
+          setTimeout(() => {
+            $indicator.fadeOut(500, () => {
               $indicator.remove();
             });
           }, 2000);
@@ -229,14 +226,14 @@ function html_substr(str, count) {
   // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
   // only wrap the target / last span or something or stop it destroying and recreating on each change..
   // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
-  let div = document.createElement('div');
+  const div = document.createElement('div');
   div.innerHTML = str;
 
   walk(div, track);
 
   function track(el) {
     if (count > 0) {
-      let len = el.data.length;
+      const len = el.data.length;
       count -= len;
       if (count <= 0) {
         el.data = el.substringData(0, el.data.length + count);
@@ -262,18 +259,18 @@ function html_substr(str, count) {
 }
 
 function wrap(target) {
-  var newtarget = $('<div></div>');
+  const newtarget = $('<div></div>');
   nodes = target.contents().clone(); // the clone is critical!
 
   nodes.each(function () {
     if (this.nodeType == 3) { // text
       let newhtml = '';
-      let text = this.wholeText; // maybe "textContent" is better?
+      const text = this.wholeText; // maybe "textContent" is better?
       for (let i = 0; i < text.length; i++) {
         if (text[i] == ' ') {
-          newhtml += '<span data-key='+globalKey + "> </span>";
+          newhtml += `<span data-key=${globalKey}> </span>`;
         } else {
-          newhtml += '<span data-key='+globalKey + ">" + text[i] + '</span>';
+          newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
         }
         globalKey++;
       }

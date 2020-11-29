@@ -4,14 +4,14 @@ let initiated = false;
 let last = undefined;
 let globalKey = 0;
 
-exports.aceInitInnerdocbodyHead = (hook_name, args, cb) => {
+exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
   const path = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
   args.iframeHTML.push(
       `<link rel="stylesheet" type="text/css" href="${path}"/>`);
   return cb();
 };
 
-exports.postAceInit = function (hook_name, args, cb) {
+exports.postAceInit = (hookName, args, cb) => {
   initiated = true;
   return cb();
 };
@@ -25,10 +25,10 @@ exports.getAuthorClassName = (author) => {
   return `ep_real_time_chat-${authorId}`;
 };
 
-exports.className2Author = function (className) {
-  if (className.substring(0, 15) == 'ep_cursortrace-') {
+exports.className2Author = (className) => {
+  if (className.substring(0, 15) === 'ep_cursortrace-') {
     return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, (cc) => {
-      if (cc == '-') { return '.'; } else if (cc.charAt(0) == 'z') {
+      if (cc === '-') { return '.'; } else if (cc.charAt(0) === 'z') {
         return String.fromCharCode(Number(cc.slice(1, -1)));
       } else {
         return cc;
@@ -38,18 +38,20 @@ exports.className2Author = function (className) {
   return null;
 };
 
-exports.aceEditEvent = function (hook_name, args, cb) {
-  // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
-  const caretMoving = ((args.callstack.editEvent.eventType == 'handleClick') || (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
+exports.aceEditEvent = (hookName, args, cb) => {
+  // Note: last is a tri-state: undefined (when the pad is first loaded),
+  // null (no last cursor) and [line, col]
+  // The AceEditEvent because it usually applies to selected items and isn't
+  // really so mucha bout current position.
+  const caretMoving = ((args.callstack.editEvent.eventType === 'handleClick') ||
+  (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
   if (caretMoving && initiated) { // Note that we have to use idle timer to get the mouse position
     const Y = args.rep.selStart[0];
     const X = args.rep.selStart[1];
-    if (!last || Y != last[0] || X != last[1]) { // If the position has changed
-      const cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
+    if (!last || Y !== last[0] || X !== last[1]) { // If the position has changed
       const myAuthorId = pad.getUserId();
       const padId = pad.getPadId();
-      const location = {y: Y, x: X};
+
       // Create a cursor position message to send to the server
       const message = {
         type: 'cursor',
@@ -70,27 +72,29 @@ exports.aceEditEvent = function (hook_name, args, cb) {
   return cb();
 };
 
-exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
+exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   /* I NEED A REFACTOR, please */
-  // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
+  // A huge problem with this is that it runs BEFORE the dom has been
+  // updated so edit events are always late..
 
   const action = context.payload.action;
-  const padId = context.payload.padId;
   const authorId = context.payload.authorId;
-  if (pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
+  let leftOffset;
+  // Dont process our own caret position (yes we do get it..) -- This is not a bug
+  if (pad.getUserId() === authorId) return false;
   const authorClass = exports.getAuthorClassName(authorId);
 
-  if (action === 'cursorPosition') { // an author has sent this client a cursor position, we need to show it in the dom
-    var authorName = context.payload.authorName;
-    if (authorName == 'null') {
-      var authorName = '😊'; // If the users username isn't set then display a smiley face
+  // an author has sent this client a cursor position, we need to show it in the dom
+  if (action === 'cursorPosition') {
+    let authorName = context.payload.authorName;
+    if (authorName === 'null') {
+      authorName = '😊'; // If the users username isn't set then display a smiley face
     }
     const y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
     let x = context.payload.locationX;
     const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    const innerWidth = inner.contents().find('#innerdocbody').width();
     if (inner.length !== 0) {
-      var leftOffset = parseInt($(inner).offset().left);
+      let leftOffset = parseInt($(inner).offset().left);
       leftOffset += parseInt($(inner).css('padding-left'));
     }
 
@@ -265,7 +269,7 @@ function html_substr(str, count) {
 
 function wrap(target) {
   const newtarget = $('<div></div>');
-  nodes = target.contents().clone(); // the clone is critical!
+  let nodes = target.contents().clone(); // the clone is critical!
 
   nodes.each(function () {
     if (this.nodeType == 3) { // text

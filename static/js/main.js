@@ -6,24 +6,22 @@ The ultimate goal of this plugin is to show where a user "is" on a pad.
 
 The logic here is applied in multiple ways.
 
-1. When an edit is recieved, display the stick to show who did that editor
-2. When this user moves their caret, broadcast that change out to the server
-3. When another (not this) user moves their caret, receive a message and display
+1. DONE - When this user moves their caret, broadcast that change out to the server
+2. When another (not this) user moves their caret, receive a message and display
    the location of that users caret.
+     * This gets extra tricky due to wrapped lines
 
 */
 
+// CSS / Styling
 exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
   const cssPath = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
   args.iframeHTML.push(`<link rel="stylesheet" type="text/css" href="${cssPath}"/>`);
   return cb();
 };
 
-exports.postAceInit = (hookName, args, cb) => {
-  // TODO: Shift this elsewhere..
-  console.log('ace inittd');
-  return cb();
-};
+// We have to store previous location..  Not ideal but it reduces noise in send
+let previousSelection = {};
 
 exports.getAuthorClassName = (author) => {
   if (!author) return false;
@@ -47,40 +45,28 @@ exports.className2Author = (className) => {
   return null;
 };
 
-exports.aceEditEvent = function(hook_name, args, cb) {
-  // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
-  var caretMoving = ((args.callstack.editEvent.eventType == "handleClick") || (args.callstack.type === "handleKeyEvent") || (args.callstack.type === "idleWorkTimer") );
-  if (caretMoving && initiated){ // Note that we have to use idle timer to get the mouse position
-    var Y = args.rep.selStart[0];
-    var X = args.rep.selStart[1];
-    if (!last || Y != last[0] || X != last[1]) { // If the position has changed
-      var cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
-      var myAuthorId = pad.getUserId();
-      var padId = pad.getPadId();
-      var location = {y: Y, x: X};
-      // Create a cursor position message to send to the server
-      var message = {
-        type : 'cursor',
-        action : 'cursorPosition',
-        locationY: Y,
-        locationX: X,
-        padId : padId,
-        myAuthorId : myAuthorId
-      }
-      last = [];
-      last[0] = Y;
-      last[1] = X;
+exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
+  // only handle messages meant for this plugin
+  if (context.payload.action !== 'cursorPosition') return cb();
+  // don't process our own position...
+  if (pad.getUserId() === context.payload.authorId) return cb();
 
-      // console.log("Sent message", message);
-      pad.collabClient.sendMessage(message);  // Send the cursor position message to the server
-    }
-  }
-  return cb();
-}
+  // Let's do a little work to get what we need from the message
+  const authorId = context.payload.authorId;
+  const authorName = context.payload.authorName;
+  const lineNumber = context.payload.locationY;
+  const linePosition = context.payload.locationX;
+  const authorClass = exports.getAuthorClassName(authorId);
 
+  exports.drawAuthorLocation(authorName, authorClass, lineNumber, linePosition);
+};
+
+exports.drawAuthorLocation = (authorName, authorClass, lineNumber, linePosition) => {
+  console.warn(authorName, authorClass, lineNumber, linePosition);
+};
+
+/*
 exports.handleClientMessage_CUSTOM = function(hook, context, cb){
-  /* I NEED A REFACTOR, please */
   // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
 
   var action = context.payload.action;
@@ -139,9 +125,6 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 
       // A load of ugly HTML that can prolly be moved to CSS
       var newLine = "<span style='width:"+divWidth+"px' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
-
-      // Set the globalKey to 0, we use this when we wrap the objects in a datakey
-      globalKey = 0; // It's bad, messy, don't ever develop like this.
 
       // Add the HTML to the DOM
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
@@ -301,3 +284,38 @@ function wrap(target) {
   });
   return newtarget.html();
 }
+*/
+
+exports.aceEditEvent = (hookName, args, cb) => {
+  // This seems counter-intuitive but actually idleWorkTimer is the only
+  // thing that keeps an accurate rep selection..  It's crazy I know..
+  if (args.callstack.type !== 'idleWorkTimer') return cb();
+
+  // Get the actual rep, because we don't trust the callstack.
+  const rep = args.editorInfo.ace_getRep();
+
+  const currentSelection = {
+    selStart: rep.selStart,
+    selEnd: rep.selEnd,
+  };
+
+  // has our position changed?
+  if (JSON.stringify(currentSelection) === JSON.stringify(previousSelection)) return cb();
+
+  // Update the prevoius selection :)
+  previousSelection = currentSelection;
+
+  // Create a cursor position message to send to the server
+  const message = {
+    type: 'cursor',
+    action: 'cursorPosition',
+    locationY: args.rep.selStart[0],
+    locationX: args.rep.selStart[1],
+    padId: pad.getPadId(),
+    myAuthorId: pad.getUserId(),
+  };
+
+  // Send the cursor position message to the server
+  pad.collabClient.sendMessage(message);
+  cb();
+};

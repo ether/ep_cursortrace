@@ -5,7 +5,6 @@
       "client_hooks": {
         "aceEditorCSS": "ep_cursortrace/static/js/css",
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
-        "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
         "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
       },

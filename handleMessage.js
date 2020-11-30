@@ -40,7 +40,7 @@ exports.handleMessage = async (hookName, context) => {
      * myAuthorId -- The Id of the author who is trying to talk to the targetAuthorId
   ***/
   if (message.action === 'cursorPosition') {
-    const authorName = await authorManager.getAuthorName(message.myAuthorId);
+    const authorName = await authorManager.getAuthorName(message.myAuthorId) || '😊';
 
     const msg = {
       type: 'COLLABROOM',

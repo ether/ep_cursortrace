@@ -1,46 +1,51 @@
-var initiated = false;
-var last = undefined;
-var globalKey = 0;
+'use strict';
 
-exports.aceInitInnerdocbodyHead = function(hook_name, args, cb) {
-  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
+/*
+
+The ultimate goal of this plugin is to show where a user "is" on a pad.
+
+The logic here is applied in multiple ways.
+
+1. When an edit is recieved, display the stick to show who did that editor
+2. When this user moves their caret, broadcast that change out to the server
+3. When another (not this) user moves their caret, receive a message and display
+   the location of that users caret.
+
+*/
+
+exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
+  const cssPath = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
+  args.iframeHTML.push(`<link rel="stylesheet" type="text/css" href="${cssPath}"/>`);
   return cb();
 };
 
-exports.postAceInit = function(hook_name, args, cb) {
-  initiated = true;
+exports.postAceInit = (hookName, args, cb) => {
+  // TODO: Shift this elsewhere..
+  console.log('ace inittd');
   return cb();
 };
 
-exports.getAuthorClassName = function(author)
-{
-  if(!author) return;
-  return "ep_cursortrace-" + author.replace(/[^a-y0-9]/g, function(c)
-  {
-    if (c == ".") return "-";
-    return 'z' + c.charCodeAt(0) + 'z';
+exports.getAuthorClassName = (author) => {
+  if (!author) return false;
+  const authorId = author.replace(/[^a-y0-9]/g, (c) => {
+    if (c === '.') return '-';
+    return `z${c.charCodeAt(0)}z`;
   });
-}
+  return `ep_real_time_chat-${authorId}`;
+};
 
-exports.className2Author = function(className)
-{
-  if (className.substring(0, 15) == "ep_cursortrace-")
-  {
-    return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, function(cc)
-    {
-      if (cc == '-') return '.';
-      else if (cc.charAt(0) == 'z')
-      {
+exports.className2Author = (className) => {
+  if (className.substring(0, 15) === 'ep_cursortrace-') {
+    return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, (cc) => {
+      if (cc === '-') { return '.'; } else if (cc.charAt(0) === 'z') {
         return String.fromCharCode(Number(cc.slice(1, -1)));
-      }
-      else
-      {
+      } else {
         return cc;
       }
     });
   }
   return null;
-}
+};
 
 exports.aceEditEvent = function(hook_name, args, cb) {
   // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]

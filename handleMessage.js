@@ -1,17 +1,30 @@
 'use strict';
 
-/** *
-*
-* Responsible for negotiating messages between two clients
-*
-****/
+/*
+* Responsible for negotiating messages between client & server.
+*/
 
 const authorManager = require('ep_etherpad-lite/node/db/AuthorManager');
 const padMessageHandler = require('ep_etherpad-lite/node/handler/PadMessageHandler');
 
+
+const sendToRoom = (message, msg) => {
+  // TODO: Write some buffer handling for protection and to stop DDoS
+  // As of 1.8.3 Etherpad has internal DDoS prevention we can leverage.
+
+  // TODO: Remove setTimeout below and shift responsibility onto client?
+  // We have to do this because the editor hasn't redrawn by the time the cursor has arrived
+  setTimeout(() => {
+    padMessageHandler.handleCustomObjectMessage(msg, false, () => {
+      // TODO: Error handling.
+    });
+  }, 500);
+};
+
 /*
 * Handle incoming messages from clients
 */
+
 exports.handleMessage = async (hookName, context) => {
   // Firstly ignore any request that aren't about cursor
   const {message: {type, data = {}} = {}} = context || {};
@@ -19,7 +32,7 @@ exports.handleMessage = async (hookName, context) => {
 
   const message = data;
   /** *
-    What's available in a message?
+    What is available in a message?
      * action -- The action IE cursorPosition
      * padId -- The padId of the pad both authors are on
      * targetAuthorId -- The Id of the author this user wants to talk to
@@ -47,20 +60,4 @@ exports.handleMessage = async (hookName, context) => {
   }
 
   return null; // null prevents Etherpad from attempting to process the message any further.
-};
-
-
-const sendToRoom = (message, msg) => {
-  // Todo write some buffer handling for protection and to stop DDoS
-  // myAuthorId exists in message.
-  const bufferAllows = true;
-  if (bufferAllows) {
-    // We have to do this because the editor hasn't redrawn by the time the cursor has arrived
-    setTimeout(() => {
-      padMessageHandler.handleCustomObjectMessage(msg, false, () => {
-        // TODO: Error handling.
-      });
-    }
-    , 500);
-  }
 };

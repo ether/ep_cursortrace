@@ -1,5 +1,5 @@
 'use strict';
-
+let globalKey = 0; // TODO factor me out!
 /*
 
 The ultimate goal of this plugin is to show where a user "is" on a pad.
@@ -73,49 +73,46 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   const $inner = $('iframe[name="ace_outer"]').contents().find('iframe');
   const lineWidth = $(line).width();
   const lineHTML = $(line).html();
-  // const innerStyles = $inner.contents().find('body').getStyleObject();
-  // console.warn("iS", innerStyles)
   const styles = $(line).getStyleObject();
-  let left = $('iframe[name="ace_outer"]').contents().find('iframe').offset().left;
-  let top = $(line).offset().top; // A standard generic offset
-  // adding in top of the ace outer.
-  const outerTopOffset = $('iframe[name="ace_outer"]').offset().top;
-  // const outerTopPadding = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').css("padding-top");
-  // console.warn('hey', outerTopPadding)
-  top += outerTopOffset
-  console.warn("line ofrset2", top)
-  const innerPaddingLeft = parseInt($inner.css('padding-left').replace('px', ''));
-  const innerBodyPaddingLeft = parseInt($('iframe[name="ace_outer"]').contents().
-      find('iframe').contents().find('body').css('padding-left').replace('px', ''));
-  const innerWidth = $inner.contents().find('#innerdocbody').width();
 
+  const innerPaddingLeft = parseInt($inner.css('padding-left').replace('px', ''));
+  const innerWidth = $inner.contents().find('#innerdocbody').width();
   const authorIdNoDot = authorId.replace('.', '');
   const $outerdocbody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
+  let x = linePosition; // todo factor me out
+  const innerBodyPaddingLeft = parseInt($('iframe[name="ace_outer"]').contents().
+      find('iframe').contents().find('body').css('padding-left').replace('px', ''));
 
   if ($('iframe[name="ace_outer"]').contents().find('#outerdocbody').
       contents('.traceWorkerContainer').length === 0) {
     $outerdocbody.append('<div class="traceWorkerContainer"></div>');
   }
   const $traceWorkerContainer = $outerdocbody.contents('.traceWorkerContainer');
-  $traceWorkerContainer.css('font-size', '120%');
   $traceWorkerContainer.css('width', innerWidth);
-  // $traceWorkerContainer.css(innerStyles);
+
+  $traceWorkerContainer.css('font-size', '120%'); // TODO: Seba, help!
+  // TODO: Items with heading 1 (H1) don't get the right font-size!  Why?!
 
   // remove the old worker.
-  $('iframe[name="ace_outer"]').contents().find('#outerdocbody').
-      contents().find('.traceWorkerContainer').contents().remove(`.trace${authorIdNoDot}`);
   $traceWorkerContainer.contents().remove(`.trace${authorIdNoDot}`);
+
+  // This is horrible but a limitation because I'm parsing HTML
+  // todo factor out x
+  if ($(lineHTML).children('span').length < 1) { x -= 1; }
+
+  const newText = html_substr(lineHTML, (x));
 
   // create a new worker and append it.
   const $hiddenLine = $('<span />', {
     class: `ghettoCursorXPos trace${authorIdNoDot}`,
     width: `${lineWidth}px`,
-    html: lineHTML,
+    html: newText,
     css: styles,
   }).appendTo($traceWorkerContainer);
 
   // wrap <div>abc</div> up as <div><span>a</span><span>b</span>....
   $($hiddenLine).html(wrap($($hiddenLine)));
+
   linePosition += 1; // so 0 element becomes 1.
 
   // If the caret is at the end of the line there will be no span.
@@ -127,9 +124,20 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
 
   const character = $($hiddenLine).find(`[data-key=${linePosition}]`);
 
+  let left = $('iframe[name="ace_outer"]').contents().find('iframe').offset().left;
+  let top = $(line).offset().top; // A standard generic offset
+
+  // adding in top of the ace outer.
+  top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
+
   if (character.length !== 0) {
     left += character.position().left;
   }
+
+  const height = $hiddenLine.height(); // the height of the worker
+  // plus the top offset minus the actual height of our focus span
+  top = top + height - (character.height() || 12);
+
 
   $traceWorkerContainer.css('left', `${left + innerPaddingLeft + innerBodyPaddingLeft}px`);
   $traceWorkerContainer.css('top', `${top + 2}px`);
@@ -292,14 +300,14 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 const wrap = (target) => {
   const newtarget = $('<div></div>');
   const nodes = target.contents().clone(); // the clone is critical!
-  let globalKey = 1;
+
   nodes.each(function () {
     if (this.nodeType === 3) { // text
       let newhtml = '';
       const text = this.wholeText; // maybe "textContent" is better?
       for (let i = 0; i < text.length; i++) {
         if (text[i] === ' ') {
-          newhtml += `<span data-key=${globalKey}> </span>`;
+          newhtml += `<span data-key="${globalKey}"> </span>`;
         } else {
           newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
         }
@@ -307,7 +315,6 @@ const wrap = (target) => {
       }
       newtarget.append($(newhtml));
     } else { // recursion FTW!
-      // console.log("recursion"); // IE handles recursion badly
       $(this).html(wrap($(this))); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }
@@ -382,3 +389,35 @@ exports.aceEditEvent = (hookName, args, cb) => {
     return this.css();
   };
 })(jQuery);
+
+const html_substr = (str, count) => {
+  const div = document.createElement('div');
+  div.innerHTML = str;
+
+  const track = (el) => {
+    if (count > 0) {
+      const len = el.data.length;
+      count -= len;
+      if (count <= 0) {
+        el.data = el.substringData(0, el.data.length + count);
+      }
+    } else {
+      el.data = '';
+    }
+  };
+
+  const walk = (el, fn) => {
+    let node = el.firstChild;
+    if (!node) return;
+    do {
+      if (node.nodeType === 3) {
+        fn(node);
+      } else if (node.nodeType === 1 && node.childNodes && node.childNodes[0]) {
+        walk(node, fn);
+      }
+    } while (node = node.nextSibling); // TODO WTF!
+  };
+
+  walk(div, track);
+  return div.innerHTML;
+};

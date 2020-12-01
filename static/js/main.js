@@ -49,7 +49,8 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   // only handle messages meant for this plugin
   if (context.payload.action !== 'cursorPosition') return cb();
   // don't process our own position...
-  if (pad.getUserId() === context.payload.authorId) return cb();
+  // if (pad.getUserId() === context.payload.authorId) return cb();
+  // CAKE TODO: Uncomment the above.
 
   // Let's do a little work to get what we need from the message
   const authorId = context.payload.authorId;
@@ -58,11 +59,58 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   const linePosition = context.payload.locationX;
   const authorClass = exports.getAuthorClassName(authorId);
 
-  exports.drawAuthorLocation(authorName, authorClass, lineNumber, linePosition);
+  exports.drawAuthorLocation(authorId, authorName, authorClass, lineNumber, linePosition);
 };
 
-exports.drawAuthorLocation = (authorName, authorClass, lineNumber, linePosition) => {
+exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, linePosition) => {
   console.warn(authorName, authorClass, lineNumber, linePosition);
+
+  const line = $('iframe[name="ace_outer"]').contents().find('iframe').
+      contents().find('#innerdocbody').find(`div:nth-child(${lineNumber + 1})`);
+
+  if (line.length === 0) return;
+
+  const lineWidth = $(line).width();
+  const lineHTML = $(line).html();
+  const styles = $(line).getStyleObject();
+  const top = $(line).offset().top; // A standard generic offset
+
+  const authorIdNoDot = authorId.replace('.', '');
+  const $outerdocbody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
+
+  if ($('iframe[name="ace_outer"]').contents().find('#outerdocbody').
+      contents('.traceWorkerContainer').length === 0) {
+    $outerdocbody.append('<div class="traceWorkerContainer"></div>');
+  }
+  const $traceWorkerContainer = $outerdocbody.contents('.traceWorkerContainer');
+  $traceWorkerContainer.css("font-size","120%");
+
+  // remove the old worker.
+  $('iframe[name="ace_outer"]').contents().find('#outerdocbody').
+      contents().find('.traceWorkerContainer').contents().remove(`.trace${authorIdNoDot}`);
+  $traceWorkerContainer.contents().remove(`.trace${authorIdNoDot}`);
+
+  // create a new worker and append it.
+  const $hiddenLine = $('<span />', {
+    class: `ghettoCursorXPos trace${authorIdNoDot}`,
+    width: `${lineWidth}px`,
+    html: lineHTML,
+    css: styles,
+  }).appendTo($traceWorkerContainer);
+
+  // wrap <div>abc</div> up as <div><span>a</span><span>b</span>....
+  $($hiddenLine).html(wrap($($hiddenLine)));
+
+  const character = $($hiddenLine).find(`[data-key=${linePosition - 1}]`);
+
+  let left = 0;
+  if (character.length !== 0) {
+    left = character.position().left;
+  }
+
+  console.warn("top", top, "left", left);
+
+
 };
 
 /*
@@ -218,73 +266,32 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
   }
   return cb();
 }
-
-function html_substr( str, count ) {
-  if( browser.msie ) return ""; // IE can't handle processing any of the X position stuff so just return a blank string
-  // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
-  // only wrap the target / last span or something or stop it destroying and recreating on each change..
-  // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
-  var div = document.createElement('div');
-  div.innerHTML = str;
-
-  walk( div, track );
-
-  function track( el ) {
-    if( count > 0 ) {
-      var len = el.data.length;
-      count -= len;
-      if( count <= 0 ) {
-        el.data = el.substringData( 0, el.data.length + count );
-      }
-    } else {
-      el.data = '';
-    }
-  }
-
-  function walk( el, fn ) {
-    var node = el.firstChild;
-    if(!node) return;
-    do {
-      if( node.nodeType === 3 ) {
-        fn(node);
-        //          Added this >>------------------------------------<<
-      } else if( node.nodeType === 1 && node.childNodes && node.childNodes[0] ) {
-        walk( node, fn );
-      }
-    } while( node = node.nextSibling );
-  }
-  return div.innerHTML;
-}
-
-function wrap(target) {
- var newtarget = $("<div></div>");
-  nodes = target.contents().clone(); // the clone is critical!
-
-  nodes.each(function() {
-    if (this.nodeType == 3) { // text
-      var newhtml = "";
-      var text = this.wholeText; // maybe "textContent" is better?
-      for (var i=0; i < text.length; i++) {
-        if (text[i] == ' '){
-          newhtml += "<span data-key="+globalKey+"> </span>";
-        }
-        else
-        {
-          newhtml += "<span data-key="+globalKey+">" + text[i] + "</span>";
+*/
+const wrap = (target) => {
+  const newtarget = $('<div></div>');
+  const nodes = target.contents().clone(); // the clone is critical!
+  let globalKey = 0;
+  nodes.each(function () {
+    if (this.nodeType === 3) { // text
+      let newhtml = '';
+      const text = this.wholeText; // maybe "textContent" is better?
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === ' ') {
+          newhtml += `<span data-key=${globalKey}> </span>`;
+        } else {
+          newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
         }
         globalKey++;
       }
       newtarget.append($(newhtml));
-    }
-    else { // recursion FTW!
+    } else { // recursion FTW!
       // console.log("recursion"); // IE handles recursion badly
       $(this).html(wrap($(this))); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }
   });
   return newtarget.html();
-}
-*/
+};
 
 exports.aceEditEvent = (hookName, args, cb) => {
   // This seems counter-intuitive but actually idleWorkTimer is the only
@@ -319,3 +326,37 @@ exports.aceEditEvent = (hookName, args, cb) => {
   pad.collabClient.sendMessage(message);
   cb();
 };
+
+/*
+ * getStyleObject Plugin for jQuery JavaScript Library
+ * From: http://upshots.org/?p=112
+ * Refactored for this Etherpad plugin
+ */
+
+(function ($) {
+  $.fn.getStyleObject = function () {
+    const dom = this.get(0);
+    let style;
+    const returns = {};
+    if (window.getComputedStyle) {
+      const camelize = (a, b) => b.toUpperCase();
+      style = window.getComputedStyle(dom, null);
+      for (let i = 0, l = style.length; i < l; i++) {
+        const prop = style[i];
+        const camel = prop.replace(/-([a-z])/g, camelize);
+        const val = style.getPropertyValue(prop);
+        returns[camel] = val;
+      }
+      return returns;
+    }
+    if (style === dom.currentStyle) {
+      for (const prop in style) {
+        if (style[prop]) {
+          returns[prop] = style[prop];
+        }
+      }
+      return returns;
+    }
+    return this.css();
+  };
+})(jQuery);

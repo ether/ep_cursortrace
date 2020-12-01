@@ -1,3 +1,9 @@
+.traceWorkerContainer {
+  position:absolute;
+  left: 250px;
+  top: 150px;
+}
+
 .ghettoCursorXPos{
   white-space:pre-wrap;
   word-wrap:break-word;

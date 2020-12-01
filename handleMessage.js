@@ -7,7 +7,6 @@
 const authorManager = require('ep_etherpad-lite/node/db/AuthorManager');
 const padMessageHandler = require('ep_etherpad-lite/node/handler/PadMessageHandler');
 
-
 const sendToRoom = (message, msg) => {
   // TODO: Write some buffer handling for protection and to stop DDoS
   // As of 1.8.3 Etherpad has internal DDoS prevention we can leverage.

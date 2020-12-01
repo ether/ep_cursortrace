@@ -1,12 +1,11 @@
 'use strict';
-let globalKey = 0; // TODO factor me out!
 /*
 
 The ultimate goal of this plugin is to show where a user "is" on a pad.
 
 The logic here is applied in multiple ways.
 
-1. DONE - When this user moves their caret, broadcast that change out to the server
+1. When this user moves their caret, broadcast that change out to the server
 2. When another (not this) user moves their caret, receive a message and display
    the location of that users caret.
      * This gets extra tricky due to wrapped lines
@@ -50,7 +49,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   if (context.payload.action !== 'cursorPosition') return cb();
   // don't process our own position...
   // if (pad.getUserId() === context.payload.authorId) return cb();
-  // CAKE TODO: Uncomment the above.
+  // CAKE : Uncomment the above.
 
   // Let's do a little work to get what we need from the message
   const authorId = context.payload.authorId;
@@ -79,7 +78,6 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   const innerWidth = $inner.contents().find('#innerdocbody').width();
   const authorIdNoDot = authorId.replace('.', '');
   const $outerdocbody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
-  let x = linePosition; // todo factor me out
   const innerBodyPaddingLeft = parseInt($('iframe[name="ace_outer"]').contents().
       find('iframe').contents().find('body').css('padding-left').replace('px', ''));
 
@@ -97,10 +95,9 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   $traceWorkerContainer.contents().remove(`.trace${authorIdNoDot}`);
 
   // This is horrible but a limitation because I'm parsing HTML
-  // todo factor out x
-  if ($(lineHTML).children('span').length < 1) { x -= 1; }
+  if ($(lineHTML).children('span').length < 1) linePosition -= 1;
 
-  const newText = html_substr(lineHTML, (x));
+  const newText = html_substr(lineHTML, (linePosition));
 
   // create a new worker and append it.
   const $hiddenLine = $('<span />', {
@@ -137,7 +134,6 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   const height = $hiddenLine.height(); // the height of the worker
   // plus the top offset minus the actual height of our focus span
   top = top + height - (character.height() || 12);
-
 
   $traceWorkerContainer.css('left', `${left + innerPaddingLeft + innerBodyPaddingLeft}px`);
   $traceWorkerContainer.css('top', `${top + 2}px`);
@@ -300,18 +296,18 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 const wrap = (target) => {
   const newtarget = $('<div></div>');
   const nodes = target.contents().clone(); // the clone is critical!
-
+  let spanKey = 0;
   nodes.each(function () {
     if (this.nodeType === 3) { // text
       let newhtml = '';
       const text = this.wholeText; // maybe "textContent" is better?
       for (let i = 0; i < text.length; i++) {
         if (text[i] === ' ') {
-          newhtml += `<span data-key="${globalKey}"> </span>`;
+          newhtml += `<span data-key="${spanKey}"> </span>`;
         } else {
-          newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
+          newhtml += `<span data-key=${spanKey}>${text[i]}</span>`;
         }
-        globalKey++;
+        spanKey++;
       }
       newtarget.append($(newhtml));
     } else { // recursion FTW!

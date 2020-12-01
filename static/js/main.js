@@ -1,4 +1,6 @@
 'use strict';
+
+
 /*
 
 The ultimate goal of this plugin is to show where a user "is" on a pad.
@@ -58,10 +60,13 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   const linePosition = context.payload.locationX;
   const authorClass = exports.getAuthorClassName(authorId);
 
-  exports.drawAuthorLocation(authorId, authorName, authorClass, lineNumber, linePosition);
+  exports.discoverAuthorLocation(authorId, authorName, authorClass, lineNumber, linePosition);
 };
 
-exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, linePosition) => {
+exports.discoverAuthorLocation = (authorId, authorName, authorClass, lineNumber, linePosition) => {
+  // TODO: Need Rhansen help to remove :D
+  let spanKey = 0; // This global is required for the wrap function to work properly
+
   // console.warn(authorName, authorClass, lineNumber, linePosition);
 
   const line = $('iframe[name="ace_outer"]').contents().find('iframe').
@@ -98,7 +103,7 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   // TODO: Investigate if the below line is relevant any more?
   // if ($(lineHTML).children('span').length < 1) linePosition -= 1;
 
-  const newText = html_substr(lineHTML, (linePosition));
+  const newText = htmlSubstr(lineHTML, (linePosition));
 
   // create a new worker and append it.
   const $hiddenLine = $('<span />', {
@@ -109,8 +114,12 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   }).appendTo($traceWorkerContainer);
 
   // wrap <div>abc</div> up as <div><span>a</span><span>b</span>....
-  $($hiddenLine).html(wrap($($hiddenLine)));
-  linePosition += 1; // so 0 element becomes 1.
+  console.warn("before", spanKey)
+  const wrapped = wrap($hiddenLine, spanKey);
+  console.warn("wrapped", wrapped)
+  $($hiddenLine).html(wrapped.html);
+  spanKey = wrapped.spanKey;
+  // linePosition += 1; // so 0 element becomes 1.
 
   // If the caret is at the end of the line there will be no span.
   const spanCount = $($hiddenLine).find('span').length;
@@ -119,8 +128,11 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
     linePosition = spanCount - 1;
   }
 
-  const character = $($hiddenLine).find(`[data-key=${linePosition}]`);
-
+  console.warn($hiddenLine.contents().find('span'));
+        // var span = $(worker).find("[data-key="+(x-1)+"]");
+  const character = $hiddenLine.contents().find("[data-key="+linePosition+"]");
+console.warn(character);
+    console.warn(character.html());
   let left = $('iframe[name="ace_outer"]').contents().find('iframe').offset().left;
   let top = $(line).offset().top; // A standard generic offset
 
@@ -137,166 +149,53 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
 
   $traceWorkerContainer.css('left', `${left + innerPaddingLeft + innerBodyPaddingLeft}px`);
   $traceWorkerContainer.css('top', `${top + 2}px`);
+
+console.warn("left", left)
+
+  drawAuthorLocation(top, left, authorId, authorIdNoDot, authorName);
 };
 
-/*
-exports.handleClientMessage_CUSTOM = function(hook, context, cb){
-  // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
+const drawAuthorLocation = (top, left, authorId, authorIdNoDot, authorName) => {
+  // Author color
+  const users = pad.collabClient.getConnectedUsers();
+  $.each(users, (user, value) => {
+    if (value.userId === authorId) {
+      const colors = pad.getColorPalette(); // support non set colors
+      let color;
+      if (colors[value.colorId]) {
+        color = colors[value.colorId];
+      } else {
+        color = value.colorId; // Test for XSS
+      }
+      const outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
 
-  var action = context.payload.action;
-  var padId = context.payload.padId;
-  var authorId = context.payload.authorId;
-  if(pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
-  var authorClass = exports.getAuthorClassName(authorId);
+      // Remove all divs that already exist for this author
+      $('iframe[name="ace_outer"]').contents().find(`.caret-${authorIdNoDot}`).remove();
+console.warn("left2", left);
+      // Create a new Div for this author
+      const $indicator =
+       $(`<div class='caretindicator ${location} caret-${authorIdNoDot}' \
+       style='height:16px;left:${left}px;top:${top}px;background-color:${color}'> \
+       <p class='stickp ${location}'></p></div>`);
+      $indicator.attr('title', authorName);
+      $indicator.find('p').text(authorName);
+      $(outBody).append($indicator);
 
-  if(action === 'cursorPosition'){ // an author has sent this client a cursor position, we need to show it in the dom
-
-    var authorName = context.payload.authorName;
-    if(authorName == "null"){
-      var authorName = "😊" // If the users username isn't set then display a smiley face
+      // After a while, fade it out :)
+      setTimeout(() => {
+        $indicator.fadeOut(500, () => {
+          $indicator.remove();
+        });
+      }, 2000);
     }
-    var y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
-    var x = context.payload.locationX;
-    var inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    var innerWidth = inner.contents().find('#innerdocbody').width();
-    if(inner.length !== 0){
-      var leftOffset = parseInt($(inner).offset().left);
-      leftOffset = leftOffset + parseInt($(inner).css('padding-left'));
-    }
+  });
+};
 
-    var stickUp = false;
 
-    // Get the target Line
-    var div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find("div:nth-child("+y+")");
-
-    var divWidth = div.width();
-    // Is the line visible yet?
-    if ( div.length !== 0 ) {
-      var top = $(div).offset().top; // A standard generic offset
-      // The problem we have here is we don't know the px X offset of the caret from the user
-      // Because that's a blocker for now lets just put a nice little div on the left hand side..
-      // SO here is how we do this..
-      // Get the entire string including the styling
-      // Put it in a hidden SPAN that has the same width as ace inner
-      // Delete everything after X chars
-      // Measure the new width -- This gives us the offset without modifying the ACE Dom
-      // Due to IE sucking this doesn't work in IE....
-
-      // We need the offset of the innerdocbody on top too.
-      top = top + parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
-
-      // Get the HTML
-      var html = $(div).html();
-
-      // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-      var authorWorker = "hiddenUgly" + exports.getAuthorClassName(authorId);
-
-      // if Div contains block attribute IE h1 or H2 then increment by the number
-      if ( $(div).children("span").length < 1 ){ x = x - 1; }// This is horrible but a limitation because I'm parsing HTML
-
-      // Get the new string but maintain mark up
-      var newText = html_substr(html, (x));
-
-      // A load of ugly HTML that can prolly be moved to CSS
-      var newLine = "<span style='width:"+divWidth+"px' id='" + authorWorker + "' class='ghettoCursorXPos'>"+newText+"</span>";
-
-      // Add the HTML to the DOM
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
-
-      // Get the worker element
-      var worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find("#" + authorWorker);
-
-      // Wrap the HTML in spans so we can find a char
-      $(worker).html(wrap($(worker)));
-      // console.log($(worker).html(), x);
-
-      // Get the Left offset of the x span
-      var span = $(worker).find("[data-key="+(x-1)+"]");
-
-      // Get the width of the element (This is how far out X is in px);
-      if(span.length !== 0){
-        var left = span.position().left;
-      }else{
-        // empty span.
-        var left = 0;
-      }
-
-      // Get the height of the element minus the inner line height
-      var height = worker.height(); // the height of the worker
-      top = top + height - (span.height() || 12); // plus the top offset minus the actual height of our focus span
-      if(top <= 0){  // If the tooltip wont be visible to the user because it's too high up
-        stickUp = true;
-        top = top + (span.height()*2);
-        if(top < 0){ top = 0; } // handle case where caret is in 0,0
-      }
-
-      // Add the innerdocbody offset
-      left = left + leftOffset;
-
-      // Add support for page view margins
-      var divMargin = $(div).css("margin-left");
-      var innerdocbodyMargin = $(div).parent().css("padding-left");
-      if(innerdocbodyMargin){
-        innerdocbodyMargin = parseInt(innerdocbodyMargin);
-      }else{
-        innerdocbodyMargin = 0;
-      }
-      if(divMargin){
-        divMargin = divMargin.replace("px", "");
-        // console.log("Margin is ", divMargin);
-        divMargin = parseInt(divMargin);
-        if((divMargin + innerdocbodyMargin) > 0){
-          // console.log("divMargin", divMargin);
-          left = left + divMargin;
-        }
-      }
-      left = left+18;
-
-      // Remove the element
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove("#" + authorWorker);
-
-      // Author color
-      var users = pad.collabClient.getConnectedUsers();
-      $.each(users, function(user, value){
-        if(value.userId == authorId){
-          var colors = pad.getColorPalette(); // support non set colors
-          if(colors[value.colorId]){
-            var color = colors[value.colorId];
-          }else{
-            var color = value.colorId; // Test for XSS
-          }
-          var outBody = $('iframe[name="ace_outer"]').contents().find("#outerdocbody");
-          var span = $(div).contents().find("span:first");
-
-          // Remove all divs that already exist for this author
-          $('iframe[name="ace_outer"]').contents().find(".caret-"+authorClass).remove();
-
-          // Location of stick direction IE up or down
-          if(stickUp){var location = 'stickUp';}else{var location = 'stickDown';}
-
-          // Create a new Div for this author
-          var $indicator = $("<div class='caretindicator "+ location+ " caret-"+authorClass+"' style='height:16px;left:"+left+"px;top:"+top +"px;background-color:"+color+"'><p class='stickp "+location+"'></p></div>");
-          $indicator.attr("title", authorName);
-          $indicator.find("p").text(authorName);
-          $(outBody).append($indicator);
-
-          // After a while, fade it out :)
-          setTimeout(function(){
-            $indicator.fadeOut(500, function(){
-              $indicator.remove();
-            });
-          }, 2000);
-        }
-      });
-    }
-  }
-  return cb();
-}
-*/
-const wrap = (target) => {
+const wrap = (target, spanKey) => {
+  console.warn("in wrap", spanKey)
   const newtarget = $('<div></div>');
   const nodes = target.contents().clone(); // the clone is critical!
-  let spanKey = 0;
   nodes.each(function () {
     if (this.nodeType === 3) { // text
       let newhtml = '';
@@ -308,14 +207,19 @@ const wrap = (target) => {
           newhtml += `<span data-key=${spanKey}>${text[i]}</span>`;
         }
         spanKey++;
+        console.warn("spanKey", spanKey) // Gah spanKey is doing weird stuff
+        // need help from @rhansen again :D
       }
       newtarget.append($(newhtml));
     } else { // recursion FTW!
-      $(this).html(wrap($(this))); // This really hurts doing any sort of count..
+      $(this).html(wrap($(this), spanKey)); // This really hurts doing any sort of count..
       newtarget.append($(this));
     }
   });
-  return newtarget.html();
+  return {
+    html: newtarget.html(),
+    spanKey,
+  }
 };
 
 exports.aceEditEvent = (hookName, args, cb) => {
@@ -386,7 +290,7 @@ exports.aceEditEvent = (hookName, args, cb) => {
   };
 })(jQuery);
 
-const html_substr = (str, count) => {
+const htmlSubstr = (str, count) => {
   const div = document.createElement('div');
   div.innerHTML = str;
 
@@ -411,7 +315,8 @@ const html_substr = (str, count) => {
       } else if (node.nodeType === 1 && node.childNodes && node.childNodes[0]) {
         walk(node, fn);
       }
-    } while (node = node.nextSibling); // TODO WTF!
+    } while (node = node.nextSibling); // recursion, what's the best thing to do here?!
+    // TODO: Need rhansen help.
   };
 
   walk(div, track);

@@ -70,19 +70,20 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
 
   if (line.length === 0) return;
 
+  const $inner = $('iframe[name="ace_outer"]').contents().find('iframe');
   const lineWidth = $(line).width();
   const lineHTML = $(line).html();
+  // const innerStyles = $inner.contents().find('body').getStyleObject();
+  // console.warn("iS", innerStyles)
   const styles = $(line).getStyleObject();
   let left = $('iframe[name="ace_outer"]').contents().find('iframe').offset().left;
   let top = $(line).offset().top; // A standard generic offset
-console.warn("line ofrset", top)
   // adding in top of the ace outer.
   const outerTopOffset = $('iframe[name="ace_outer"]').offset().top;
   // const outerTopPadding = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').css("padding-top");
   // console.warn('hey', outerTopPadding)
   top += outerTopOffset
   console.warn("line ofrset2", top)
-  const $inner = $('iframe[name="ace_outer"]').contents().find('iframe');
   const innerPaddingLeft = parseInt($inner.css('padding-left').replace('px', ''));
   const innerBodyPaddingLeft = parseInt($('iframe[name="ace_outer"]').contents().
       find('iframe').contents().find('body').css('padding-left').replace('px', ''));
@@ -98,6 +99,8 @@ console.warn("line ofrset", top)
   const $traceWorkerContainer = $outerdocbody.contents('.traceWorkerContainer');
   $traceWorkerContainer.css('font-size', '120%');
   $traceWorkerContainer.css('width', innerWidth);
+  // $traceWorkerContainer.css(innerStyles);
+
   // remove the old worker.
   $('iframe[name="ace_outer"]').contents().find('#outerdocbody').
       contents().find('.traceWorkerContainer').contents().remove(`.trace${authorIdNoDot}`);
@@ -113,8 +116,16 @@ console.warn("line ofrset", top)
 
   // wrap <div>abc</div> up as <div><span>a</span><span>b</span>....
   $($hiddenLine).html(wrap($($hiddenLine)));
+  linePosition += 1; // so 0 element becomes 1.
 
-  const character = $($hiddenLine).find(`[data-key=${linePosition - 1}]`);
+  // If the caret is at the end of the line there will be no span.
+  const spanCount = $($hiddenLine).find('span').length;
+  if (linePosition === spanCount) {
+    // so use the previous position.
+    linePosition = spanCount - 1;
+  }
+
+  const character = $($hiddenLine).find(`[data-key=${linePosition}]`);
 
   if (character.length !== 0) {
     left += character.position().left;
@@ -281,7 +292,7 @@ exports.handleClientMessage_CUSTOM = function(hook, context, cb){
 const wrap = (target) => {
   const newtarget = $('<div></div>');
   const nodes = target.contents().clone(); // the clone is critical!
-  let globalKey = 0;
+  let globalKey = 1;
   nodes.each(function () {
     if (this.nodeType === 3) { // text
       let newhtml = '';

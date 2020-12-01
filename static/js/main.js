@@ -62,7 +62,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
 };
 
 exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, linePosition) => {
-  console.warn(authorName, authorClass, lineNumber, linePosition);
+  // console.warn(authorName, authorClass, lineNumber, linePosition);
 
   const line = $('iframe[name="ace_outer"]').contents().find('iframe').
       contents().find('#innerdocbody').find(`div:nth-child(${lineNumber + 1})`);
@@ -95,7 +95,8 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   $traceWorkerContainer.contents().remove(`.trace${authorIdNoDot}`);
 
   // This is horrible but a limitation because I'm parsing HTML
-  if ($(lineHTML).children('span').length < 1) linePosition -= 1;
+  // TODO: Investigate if the below line is relevant any more?
+  // if ($(lineHTML).children('span').length < 1) linePosition -= 1;
 
   const newText = html_substr(lineHTML, (linePosition));
 
@@ -109,7 +110,6 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
 
   // wrap <div>abc</div> up as <div><span>a</span><span>b</span>....
   $($hiddenLine).html(wrap($($hiddenLine)));
-
   linePosition += 1; // so 0 element becomes 1.
 
   // If the caret is at the end of the line there will be no span.

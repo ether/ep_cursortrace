@@ -73,7 +73,20 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
   const lineWidth = $(line).width();
   const lineHTML = $(line).html();
   const styles = $(line).getStyleObject();
-  const top = $(line).offset().top; // A standard generic offset
+  let left = $('iframe[name="ace_outer"]').contents().find('iframe').offset().left;
+  let top = $(line).offset().top; // A standard generic offset
+console.warn("line ofrset", top)
+  // adding in top of the ace outer.
+  const outerTopOffset = $('iframe[name="ace_outer"]').offset().top;
+  // const outerTopPadding = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').css("padding-top");
+  // console.warn('hey', outerTopPadding)
+  top += outerTopOffset
+  console.warn("line ofrset2", top)
+  const $inner = $('iframe[name="ace_outer"]').contents().find('iframe');
+  const innerPaddingLeft = parseInt($inner.css('padding-left').replace('px', ''));
+  const innerBodyPaddingLeft = parseInt($('iframe[name="ace_outer"]').contents().
+      find('iframe').contents().find('body').css('padding-left').replace('px', ''));
+  const innerWidth = $inner.contents().find('#innerdocbody').width();
 
   const authorIdNoDot = authorId.replace('.', '');
   const $outerdocbody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
@@ -83,8 +96,8 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
     $outerdocbody.append('<div class="traceWorkerContainer"></div>');
   }
   const $traceWorkerContainer = $outerdocbody.contents('.traceWorkerContainer');
-  $traceWorkerContainer.css("font-size","120%");
-
+  $traceWorkerContainer.css('font-size', '120%');
+  $traceWorkerContainer.css('width', innerWidth);
   // remove the old worker.
   $('iframe[name="ace_outer"]').contents().find('#outerdocbody').
       contents().find('.traceWorkerContainer').contents().remove(`.trace${authorIdNoDot}`);
@@ -103,14 +116,12 @@ exports.drawAuthorLocation = (authorId, authorName, authorClass, lineNumber, lin
 
   const character = $($hiddenLine).find(`[data-key=${linePosition - 1}]`);
 
-  let left = 0;
   if (character.length !== 0) {
-    left = character.position().left;
+    left += character.position().left;
   }
 
-  console.warn("top", top, "left", left);
-
-
+  $traceWorkerContainer.css('left', `${left + innerPaddingLeft + innerBodyPaddingLeft}px`);
+  $traceWorkerContainer.css('top', `${top + 2}px`);
 };
 
 /*

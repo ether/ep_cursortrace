@@ -1,61 +1,62 @@
-var initiated = false;
-var last = undefined;
-var globalKey = 0;
+'use strict';
 
-exports.aceInitInnerdocbodyHead = function (hook_name, args, cb) {
-  args.iframeHTML.push('<link rel="stylesheet" type="text/css" href="../static/plugins/ep_cursortrace/static/css/ace_inner.css"/>');
-  return cb();
+let initiated = false;
+let last = undefined;
+let globalKey = 0;
+
+exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
+  const url = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
+  args.iframeHTML.push(`<link rel="stylesheet" type="text/css" href="${url}"/>`);
+  cb();
 };
 
-exports.postAceInit = function (hook_name, args, cb) {
+exports.postAceInit = (hook_name, args, cb) => {
   initiated = true;
-  return cb();
+  cb();
 };
 
-exports.getAuthorClassName = function (author) {
-  if (!author) return;
-  return 'ep_cursortrace-' + author.replace(/[^a-y0-9]/g, (c)
-  => {
-    if (c == '.') return '-';
-    return `z${  c.charCodeAt(0)  }z`;
+exports.getAuthorClassName = (author) => {
+  if (!author) return false;
+  const authorId = author.replace(/[^a-y0-9]/g, (c) => {
+    if (c === '.') return '-';
+    return `z${c.charCodeAt(0)}z`;
   });
+  return `ep_real_time_chat-${authorId}`;
 };
 
-exports.className2Author = function (className) {
-  if (className.substring(0, 15) == 'ep_cursortrace-') {
-    return className.substring(15).replace(/[a-y0-9]+|-|z.+?z/g, (cc)
-    => {
-      if (cc == '-') {return '.';}
-      else if (cc.charAt(0) == 'z') {
+exports.className2Author = (className) => {
+  if (className.substring(0, 7) === 'author-') {
+    return className.substring(7).replace(/[a-y0-9]+|-|z.+?z/g, (cc) => {
+      if (cc === '-') { return '.'; } else if (cc.charAt(0) === 'z') {
         return String.fromCharCode(Number(cc.slice(1, -1)));
       } else {
         return cc;
       }
     });
   }
-  return null;
 };
 
-exports.aceEditEvent = function (hook_name, args, cb) {
-  // Note: last is a tri-state: undefined (when the pad is first loaded), null (no last cursor) and [line, col]
-  // The AceEditEvent because it usually applies to selected items and isn't really so mucha bout current position.
-  let caretMoving = ((args.callstack.editEvent.eventType == 'handleClick') || (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
+exports.aceEditEvent = (hook_name, args, cb) => {
+  // Note: last is a tri-state: undefined (when the pad is first loaded)
+  // null (no last cursor) and [line, col]
+  // The AceEditEvent because it usually applies to selected items and isn't
+  // really so mucha bout current position.
+  const caretMoving = ((args.callstack.editEvent.eventType === 'handleClick') ||
+      (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
   if (caretMoving && initiated) { // Note that we have to use idle timer to get the mouse position
-    let Y = args.rep.selStart[0];
-    let X = args.rep.selStart[1];
-    if (!last || Y != last[0] || X != last[1]) { // If the position has changed
-      let cls = exports.getAuthorClassName(args.editorInfo.ace_getAuthor());
-      let myAuthorId = pad.getUserId();
-      let padId = pad.getPadId();
-      let location = {y: Y, x: X};
+    const Y = args.rep.selStart[0];
+    const X = args.rep.selStart[1];
+    if (!last || Y !== last[0] || X !== last[1]) { // If the position has changed
+      const myAuthorId = pad.getUserId();
+      const padId = pad.getPadId();
       // Create a cursor position message to send to the server
-      let message = {
+      const message = {
         type: 'cursor',
         action: 'cursorPosition',
         locationY: Y,
         locationX: X,
         padId,
-        myAuthorId
+        myAuthorId,
       };
       last = [];
       last[0] = Y;
@@ -68,25 +69,29 @@ exports.aceEditEvent = function (hook_name, args, cb) {
   return cb();
 };
 
-exports.handleClientMessage_CUSTOM = function (hook, context, cb) {
+exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   /* I NEED A REFACTOR, please */
-  // A huge problem with this is that it runs BEFORE the dom has been updated so edit events are always late..
+  // A huge problem with this is that it runs BEFORE the dom has
+  // been updated so edit events are always late..
 
-  let action = context.payload.action;
-  let padId = context.payload.padId;
-  let authorId = context.payload.authorId;
-  if (pad.getUserId() === authorId) return false; // Dont process our own caret position (yes we do get it..) -- This is not a bug
-  let authorClass = exports.getAuthorClassName(authorId);
+  const action = context.payload.action;
+  const authorId = context.payload.authorId;
+  if (pad.getUserId() === authorId) return false;
+  // Dont process our own caret position (yes we do get it..) -- This is not a bug
+  const authorClass = exports.getAuthorClassName(authorId);
 
-  if (action === 'cursorPosition') { // an author has sent this client a cursor position, we need to show it in the dom
-    var authorName = context.payload.authorName;
-    if (authorName == 'null') {
-      var authorName = '😊' // If the users username isn't set then display a smiley face
+  if (action === 'cursorPosition') {
+    // an author has sent this client a cursor position, we need to show it in the dom
+    let authorName = context.payload.authorName;
+    if (authorName === 'null' || authorName == null) {
+      // If the users username isn't set then display a smiley face
+      authorName = '😊';
     }
-    let y = context.payload.locationY + 1; // +1 as Etherpad line numbers start at 1
-    let x = context.payload.locationX;
-    let inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    let innerWidth = inner.contents().find('#innerdocbody').width();
+    // +1 as Etherpad line numbers start at 1
+    const y = context.payload.locationY + 1;
+    const x = context.payload.locationX;
+    const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
+    const innerWidth = inner.contents().find('#innerdocbody').width();
     if (inner.length !== 0) {
       var leftOffset = parseInt($(inner).offset().left);
       leftOffset += parseInt($(inner).css('padding-left'));
@@ -261,10 +266,10 @@ function html_substr(str, count) {
   return div.innerHTML;
 }
 
-function wrap(target) {
+const wrap = (target) => {
   var newtarget = $('<div></div>');
-  nodes = target.contents().clone(); // the clone is critical!
-
+  const nodes = target.contents().clone(); // the clone is critical!
+  if (!nodes) return;
   nodes.each(function () {
     if (this.nodeType == 3) { // text
       let newhtml = '';

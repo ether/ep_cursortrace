@@ -83,7 +83,6 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   if (action === 'cursorPosition') {
     // an author has sent this client a cursor position, we need to show it in the dom
     let authorName = context.payload.authorName;
-    console.log(authorName);
     if (authorName === 'null' || authorName == null) {
       // If the users username isn't set then display a smiley face
       authorName = '😊';

@@ -83,26 +83,28 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   if (action === 'cursorPosition') {
     // an author has sent this client a cursor position, we need to show it in the dom
     let authorName = context.payload.authorName;
+    console.log(authorName);
     if (authorName === 'null' || authorName == null) {
       // If the users username isn't set then display a smiley face
       authorName = '😊';
     }
     // +1 as Etherpad line numbers start at 1
     const y = context.payload.locationY + 1;
-    const x = context.payload.locationX;
+    let x = context.payload.locationX;
     const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    const innerWidth = inner.contents().find('#innerdocbody').width();
+    let leftOffset;
     if (inner.length !== 0) {
-      var leftOffset = parseInt($(inner).offset().left);
+      leftOffset = parseInt($(inner).offset().left);
       leftOffset += parseInt($(inner).css('padding-left'));
     }
 
     let stickUp = false;
 
     // Get the target Line
-    let div = $('iframe[name="ace_outer"]').contents().find('iframe').contents().find('#innerdocbody').find('div:nth-child('+y + ")");
+    const div = $('iframe[name="ace_outer"]').contents()
+        .find('iframe').contents().find('#innerdocbody').find(`div:nth-child(${y})`);
 
-    let divWidth = div.width();
+    const divWidth = div.width();
     // Is the line visible yet?
     if (div.length !== 0) {
       let top = $(div).offset().top; // A standard generic offset
@@ -119,19 +121,21 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
 
       // Get the HTML
-      let html = $(div).html();
+      const html = $(div).html();
 
       // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-      let authorWorker = 'hiddenUgly' + exports.getAuthorClassName(authorId);
+      const authorWorker = `hiddenUgly${exports.getAuthorClassName(authorId)}`;
 
       // if Div contains block attribute IE h1 or H2 then increment by the number
-      if ($(div).children('span').length < 1) { x -= 1; }// This is horrible but a limitation because I'm parsing HTML
+      // This is horrible but a limitation because I'm parsing HTML
+      if ($(div).children('span').length < 1) { x -= 1; }
 
       // Get the new string but maintain mark up
-      let newText = html_substr(html, (x));
+      const newText = html_substr(html, (x));
 
       // A load of ugly HTML that can prolly be moved to CSS
-      let newLine = `<span style='width:${divWidth}px' id='${  authorWorker  }' class='ghettoCursorXPos'>${newText}</span>`;
+      const newLine = `<span style='width:${divWidth}px' id='${authorWorker}'` +
+        ` class='ghettoCursorXPos'>${newText}</span>`;
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.
@@ -140,29 +144,32 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
 
       // Get the worker element
-      let worker = $('iframe[name="ace_outer"]').contents().find('#outerdocbody').find('#' + authorWorker);
+      const worker = $('iframe[name="ace_outer"]').contents()
+          .find('#outerdocbody').find(`#${authorWorker}`);
 
       // Wrap the HTML in spans so we can find a char
       $(worker).html(wrap($(worker)));
       // console.log($(worker).html(), x);
 
       // Get the Left offset of the x span
-      let span = $(worker).find('[data-key='+(x - 1) + "]");
+      const span = $(worker).find(`[data-key="${x - 1}"]`);
 
       // Get the width of the element (This is how far out X is in px);
+      let left;
       if (span.length !== 0) {
-        var left = span.position().left;
+        left = span.position().left;
       } else {
         // empty span.
-        var left = 0;
+        left = 0;
       }
 
       // Get the height of the element minus the inner line height
-      let height = worker.height(); // the height of the worker
-      top = top + height - (span.height() || 12); // plus the top offset minus the actual height of our focus span
+      const height = worker.height(); // the height of the worker
+      top = top + height - (span.height() || 12);
+      // plus the top offset minus the actual height of our focus span
       if (top <= 0) { // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
-        top += (span.height()*2);
+        top += (span.height() * 2);
         if (top < 0) { top = 0; } // handle case where caret is in 0,0
       }
 
@@ -186,39 +193,42 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
           left += divMargin;
         }
       }
-      left +=18;
+      left += 18;
 
       // Remove the element
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').contents().remove('#' + authorWorker);
+      $('iframe[name="ace_outer"]').contents().find('#outerdocbody')
+          .contents().remove(`#${authorWorker}`);
 
       // Author color
-      let users = pad.collabClient.getConnectedUsers();
-      $.each(users, (user, value)=> {
-        if (value.userId == authorId) {
-          let colors = pad.getColorPalette(); // support non set colors
+      const users = pad.collabClient.getConnectedUsers();
+      $.each(users, (user, value) => {
+        if (value.userId === authorId) {
+          const colors = pad.getColorPalette(); // support non set colors
+          let color;
           if (colors[value.colorId]) {
-            var color = colors[value.colorId];
+            color = colors[value.colorId];
           } else {
-            var color = value.colorId; // Test for XSS
+            color = value.colorId; // Test for XSS
           }
-          let outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
-          let span = $(div).contents().find('span:first');
+          const outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
 
           // Remove all divs that already exist for this author
-          $('iframe[name="ace_outer"]').contents().find('.caret-'+authorClass).remove();
+          $('iframe[name="ace_outer"]').contents().find(`.caret-${authorClass}`).remove();
 
           // Location of stick direction IE up or down
-          if (stickUp) { var location = 'stickUp'; } else { var location = 'stickDown'; }
+          const location = stickUp ? 'stickUp' : 'stickDown';
 
           // Create a new Div for this author
-          let $indicator = $(`<div class='caretindicator ${ location } caret-${authorClass}' style='height:16px;left:${left}px;top:${top }px;background-color:${color}'><p class='stickp ${location}'></p></div>`);
+          const $indicator = $(`<div class='caretindicator ${location} caret-${authorClass}'
+              style='height:16px;left:${left}px;top:${top}px;background-color:${color}'>
+              <p class='stickp ${location}'></p></div>`);
           $indicator.attr('title', authorName);
           $indicator.find('p').text(authorName);
           $(outBody).append($indicator);
 
           // After a while, fade it out :)
-          setTimeout(()=> {
-            $indicator.fadeOut(500, ()=> {
+          setTimeout(() => {
+            $indicator.fadeOut(500, () => {
               $indicator.remove();
             });
           }, 2000);
@@ -229,19 +239,13 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
   return cb();
 };
 
-function html_substr(str, count) {
-  if (browser.msie) return ''; // IE can't handle processing any of the X position stuff so just return a blank string
-  // Basically the recursion makes IE run out of memory and slows a pad right down, I guess a way to fix this would be to
-  // only wrap the target / last span or something or stop it destroying and recreating on each change..
-  // Also IE can often inherit the wrong font face IE bold but not apply that to the whole document ergo getting teh width wrong
-  let div = document.createElement('div');
+const html_substr = (str, count) => {
+  const div = document.createElement('div');
   div.innerHTML = str;
 
-  walk(div, track);
-
-  function track(el) {
+  const track = (el) => {
     if (count > 0) {
-      let len = el.data.length;
+      const len = el.data.length;
       count -= len;
       if (count <= 0) {
         el.data = el.substringData(0, el.data.length + count);
@@ -249,9 +253,9 @@ function html_substr(str, count) {
     } else {
       el.data = '';
     }
-  }
+  };
 
-  function walk(el, fn) {
+  const walk = (el, fn) => {
     let node = el.firstChild;
     if (!node) return;
     do {
@@ -261,24 +265,25 @@ function html_substr(str, count) {
       } else if (node.nodeType === 1 && node.childNodes && node.childNodes[0]) {
         walk(node, fn);
       }
-    } while (node = node.nextSibling);
-  }
+    } while (node = node.nextSibling); /* eslint-disable-line no-cond-assign */
+  };
+  walk(div, track);
   return div.innerHTML;
-}
+};
 
 const wrap = (target) => {
-  var newtarget = $('<div></div>');
+  const newtarget = $('<div></div>');
   const nodes = target.contents().clone(); // the clone is critical!
   if (!nodes) return;
   nodes.each(function () {
-    if (this.nodeType == 3) { // text
+    if (this.nodeType === 3) { // text
       let newhtml = '';
-      let text = this.wholeText; // maybe "textContent" is better?
+      const text = this.wholeText; // maybe "textContent" is better?
       for (let i = 0; i < text.length; i++) {
-        if (text[i] == ' ') {
-          newhtml += '<span data-key='+globalKey + "> </span>";
+        if (text[i] === ' ') {
+          newhtml += `<span data-key=${globalKey}> </span>`;
         } else {
-          newhtml += '<span data-key='+globalKey + ">" + text[i] + '</span>';
+          newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
         }
         globalKey++;
       }
@@ -290,4 +295,4 @@ const wrap = (target) => {
     }
   });
   return newtarget.html();
-}
+};

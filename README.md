@@ -1,3 +1,5 @@
+![Publish Status](https://github.com/ether/ep_cursortrace/workflows/Node.js%20Package/badge.svg) ![Backend Tests Status](https://github.com/ether/ep_cursortrace/workflows/Backend%20tests/badge.svg)
+
 # Show the caret position of authors on your Etherpad um, Pad.
 
 Important: A caret is not a cursor, a cursor is what your mouse uses.. A caret is the little stick used in a word processor.  The more you know....

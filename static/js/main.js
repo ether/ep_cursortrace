@@ -36,7 +36,7 @@ exports.className2Author = (className) => {
   }
 };
 
-exports.aceEditEvent = (hook_name, args, cb) => {
+exports.aceEditEvent = (hook_name, args) => {
   // Note: last is a tri-state: undefined (when the pad is first loaded)
   // null (no last cursor) and [line, col]
   // The AceEditEvent because it usually applies to selected items and isn't
@@ -66,7 +66,7 @@ exports.aceEditEvent = (hook_name, args, cb) => {
       pad.collabClient.sendMessage(message); // Send the cursor position message to the server
     }
   }
-  return cb();
+  return;
 };
 
 exports.handleClientMessage_CUSTOM = (hook, context, cb) => {

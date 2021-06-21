@@ -97,7 +97,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       leftOffset += parseInt($(inner).css('padding-left'));
     }
 
-    let stickUp = false;
+    let stickStyle = 'stickDown';
 
     // Get the target Line
     const div = $('iframe[name="ace_outer"]').contents()
@@ -167,7 +167,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       top = top + height - (span.height() || 12);
       // plus the top offset minus the actual height of our focus span
       if (top <= 0) { // If the tooltip wont be visible to the user because it's too high up
-        stickUp = true;
+        stickStyle = 'stickUp';
         top += (span.height() * 2);
         if (top < 0) { top = 0; } // handle case where caret is in 0,0
       }
@@ -214,16 +214,28 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
           // Remove all divs that already exist for this author
           $('iframe[name="ace_outer"]').contents().find(`.caret-${authorClass}`).remove();
 
-          // Location of stick direction IE up or down
-          const location = stickUp ? 'stickUp' : 'stickDown';
 
           // Create a new Div for this author
-          const $indicator = $(`<div class='caretindicator ${location} caret-${authorClass}'
-              style='height:16px;left:${left}px;top:${top}px;background-color:${color}'>
-              <p class='stickp ${location}'></p></div>`);
-          $indicator.attr('title', authorName);
-          $indicator.find('p').text(authorName);
+          const $indicator = $(`<div class='caretindicator caret-${authorClass}'
+              style='height:16px; background-color:${color}'>
+              </div>`);
+          const $paragraphName = $(`<p class='stickp'>${authorName}</p>`);
+          
+          //First insert elements into page to be able to use their widths to calculate when to switch stick to right
+          $indicator.append($paragraphName);
           $(outBody).append($indicator);
+          
+          const absolutePositionOfPageEnd = div.offset().left + div.width() + leftOffset + 2*divMargin;
+          if(left > (absolutePositionOfPageEnd-$indicator.width())){
+            stickStyle = 'stickRight';
+            left = left-$indicator.width();
+          }
+
+          $indicator.addClass(`${stickStyle}`);
+          $paragraphName.addClass(`${stickStyle}`);
+          $indicator.css('left', `${left}px`);
+          $indicator.css('top', `${top}px`);
+          $indicator.attr('title', authorName);
 
           // After a while, fade it out :)
           setTimeout(() => {

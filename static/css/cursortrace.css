@@ -29,6 +29,22 @@ div.stickUp:before{
   margin-top:-6px;
 }
 
+div.stickRight{     /* slide everything up a little bit, so it doesn't hide what is being written */
+  margin-top:-5px;
+}
+
+div.stickRight:before{
+  content: "";
+  display: block;
+  width: 2px;
+  height: 28px;
+  background-color: black;
+  opacity:.5;
+  margin-left: auto;
+  margin-right: -2px;
+  margin-top:-2px;
+}
+
 div.stickDown:before{
   content: "";
   display: block;
@@ -48,6 +64,13 @@ p.stickUp{
   padding-right:4px;
 }
 
+p.stickRight{
+  position:relative;
+  top:2px;
+  margin-top:-31px;
+  padding-left:4px;
+  padding-right:4px;
+}
 
 p.stickDown{
   position:relative;

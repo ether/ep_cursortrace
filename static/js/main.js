@@ -104,6 +104,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
         .find('iframe').contents().find('#innerdocbody').find(`div:nth-child(${y})`);
 
     const divWidth = div.width();
+    const divLineHeight = parseInt(getComputedStyle(div.get(0)).lineHeight);
     // Is the line visible yet?
     if (div.length !== 0) {
       let top = $(div).offset().top; // A standard generic offset
@@ -133,8 +134,8 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       const newText = html_substr(html, (x));
 
       // A load of ugly HTML that can prolly be moved to CSS
-      const newLine = `<span style='width:${divWidth}px' id='${authorWorker}'` +
-        ` class='ghettoCursorXPos'>${newText}</span>`;
+      const newLine = `<span style='width:${divWidth}px; line-height:${divLineHeight}px;'
+          id='${authorWorker}' class='ghettoCursorXPos'>${newText}</span>`;
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.

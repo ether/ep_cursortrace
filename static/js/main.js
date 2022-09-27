@@ -89,7 +89,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
     }
     // +1 as Etherpad line numbers start at 1
     const y = context.payload.locationY + 1;
-    let x = context.payload.locationX;
+    let x = context.payload.locationX + 1;
     const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     let leftOffset;
     if (inner.length !== 0) {
@@ -104,6 +104,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
         .find('iframe').contents().find('#innerdocbody').find(`div:nth-child(${y})`);
 
     const divWidth = div.width();
+    const divLineHeight = parseInt(getComputedStyle(div.get(0)).lineHeight);
     // Is the line visible yet?
     if (div.length !== 0) {
       let top = $(div).offset().top; // A standard generic offset
@@ -118,9 +119,12 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
 
       // We need the offset of the innerdocbody on top too.
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
+      // and the offset of the outerdocbody too. (for wide/narrow screens compatibility)
+      top += parseInt($('iframe[name="ace_outer"]').contents().find('#outerdocbody')
+          .css('padding-top')) - 20;
 
-      // Get the HTML
-      const html = $(div).html();
+      // Get the HTML, appending a dummy span to express the end of the line
+      const html = $(div).html() + `<span>&#xFFEF;</span>`;
 
       // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
       const authorWorker = `hiddenUgly${exports.getAuthorClassName(authorId)}`;
@@ -133,8 +137,8 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       const newText = html_substr(html, (x));
 
       // A load of ugly HTML that can prolly be moved to CSS
-      const newLine = `<span style='width:${divWidth}px' id='${authorWorker}'` +
-        ` class='ghettoCursorXPos'>${newText}</span>`;
+      const newLine = `<span style='width:${divWidth}px; line-height:${divLineHeight}px;'
+          id='${authorWorker}' class='ghettoCursorXPos'>${newText}</span>`;
 
       // Set the globalKey to 0, we use this when we wrap the objects in a datakey
       globalKey = 0; // It's bad, messy, don't ever develop like this.

@@ -119,6 +119,9 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
 
       // We need the offset of the innerdocbody on top too.
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
+      // and the offset of the outerdocbody too. (for wide/narrow screens compatibility)
+      top += parseInt($('iframe[name="ace_outer"]').contents().find('#outerdocbody')
+          .css('padding-top')) - 20;
 
       // Get the HTML, appending a dummy span to express the end of the line
       const html = $(div).html() + `<span>&#xFFEF;</span>`;

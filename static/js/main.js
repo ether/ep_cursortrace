@@ -89,7 +89,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
     }
     // +1 as Etherpad line numbers start at 1
     const y = context.payload.locationY + 1;
-    let x = context.payload.locationX;
+    let x = context.payload.locationX + 1;
     const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
     let leftOffset;
     if (inner.length !== 0) {
@@ -119,8 +119,8 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
       // We need the offset of the innerdocbody on top too.
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
 
-      // Get the HTML
-      const html = $(div).html();
+      // Get the HTML, appending a dummy span to express the end of the line
+      const html = $(div).html() + `<span>&#xFFEF;</span>`;
 
       // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
       const authorWorker = `hiddenUgly${exports.getAuthorClassName(authorId)}`;

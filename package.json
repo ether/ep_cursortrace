@@ -1,7 +1,7 @@
 {
   "name": "ep_cursortrace",
   "description": "Show cursor/caret movements of other users in real time",
-  "version": "3.1.31",
+  "version": "3.1.32",
   "author": "RedHog (Egil Moeller) <egil.moller@freecode.no>",
   "repository": {
     "type": "git",

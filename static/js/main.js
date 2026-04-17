@@ -118,6 +118,12 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
 
       // We need the offset of the innerdocbody on top too.
       top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
+      // Also account for #outerdocbody padding-top. On desktop layout this
+      // is 20px (set by Etherpad core) and the plugin was implicitly
+      // relying on that constant; on mobile-layout it's 0, so other
+      // users' cursors drifted ~20px down on narrow screens (#60).
+      const $outerBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
+      top += parseInt($outerBody.css('paddingTop'), 10) || 0;
 
       // Get the HTML
       const html = $(div).html();

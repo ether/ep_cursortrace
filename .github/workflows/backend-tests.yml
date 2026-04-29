@@ -22,11 +22,15 @@ jobs:
           version: 1.0
       -
         name: Install etherpad core
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ether/etherpad-lite
           path: etherpad-lite
-      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v4
+        name: Install Node.js
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
           version: 10
@@ -35,7 +39,7 @@ jobs:
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         name: Setup pnpm cache
         with:
           path: ${{ env.STORE_PATH }}
@@ -44,7 +48,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       -
         name: Checkout plugin repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: plugin
       - name: Remove tests

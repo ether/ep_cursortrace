@@ -21,6 +21,9 @@ exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
 
 exports.postAceInit = (hook_name, args, cb) => {
   initiated = true;
+  window.addEventListener('beforeunload', () => {
+    if (cursorThrottle) cursorThrottle.flush();
+  });
   cb();
 };
 

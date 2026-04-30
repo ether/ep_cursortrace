@@ -51,8 +51,14 @@ test('ep_cursortrace caps broadcast rate at ~10 Hz', async ({browser}) => {
 
   const frames = await b.evaluate(() => (window as any).__cursorFrames);
 
-  // 10 Hz client + 10 Hz server cap. Over ~1 s, ≤12 frames (10 + slack).
-  expect(frames).toBeLessThanOrEqual(12);
+  // The throttle caps at 10 Hz. Compute an expected upper bound from the
+  // actual elapsed time + the drain window, plus a small slack for the
+  // immediate click flush and Playwright's keypress overhead. Without the
+  // throttle this test sees ~30 frames; with the throttle ~10-15 depending
+  // on how long Playwright actually took to drive the keystrokes.
+  const totalMs = elapsed + 250;
+  const cap = Math.ceil(totalMs / 100) + 4;
+  expect(frames).toBeLessThanOrEqual(cap);
   expect(frames).toBeGreaterThan(0);
 
   // Telemetry — surfaces in test output when CI fails.

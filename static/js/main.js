@@ -4,7 +4,7 @@ let initiated = false;
 let last = undefined;
 let globalKey = 0;
 
-const {createThrottle} = require('ep_cursortrace/static/js/throttle');
+const {createThrottle} = require('./throttle');
 
 const THROTTLE_MS = 100;
 let cursorThrottle = null;

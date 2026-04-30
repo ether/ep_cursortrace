@@ -4,6 +4,15 @@ let initiated = false;
 let last = undefined;
 let globalKey = 0;
 
+const {createThrottle} = require('./throttle');
+
+const THROTTLE_MS = 100;
+let cursorThrottle = null;
+
+const sendCursor = (message) => {
+  pad.collabClient.sendMessage(message);
+};
+
 exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
   const url = '../static/plugins/ep_cursortrace/static/css/ace_inner.css';
   args.iframeHTML.push(`<link rel="stylesheet" type="text/css" href="${url}"/>`);
@@ -12,6 +21,9 @@ exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
 
 exports.postAceInit = (hook_name, args, cb) => {
   initiated = true;
+  window.addEventListener('beforeunload', () => {
+    if (cursorThrottle) cursorThrottle.flush();
+  });
   cb();
 };
 
@@ -37,36 +49,30 @@ exports.className2Author = (className) => {
 };
 
 exports.aceEditEvent = (hook_name, args) => {
-  // Note: last is a tri-state: undefined (when the pad is first loaded)
-  // null (no last cursor) and [line, col]
-  // The AceEditEvent because it usually applies to selected items and isn't
-  // really so mucha bout current position.
+  // Drop idleWorkTimer: it ticks even when nothing has changed and is the
+  // primary source of socket spam. Click + key events are sufficient signal.
   const caretMoving = ((args.callstack.editEvent.eventType === 'handleClick') ||
-      (args.callstack.type === 'handleKeyEvent') || (args.callstack.type === 'idleWorkTimer'));
-  if (caretMoving && initiated) { // Note that we have to use idle timer to get the mouse position
-    const Y = args.rep.selStart[0];
-    const X = args.rep.selStart[1];
-    if (!last || Y !== last[0] || X !== last[1]) { // If the position has changed
-      const myAuthorId = pad.getUserId();
-      const padId = pad.getPadId();
-      // Create a cursor position message to send to the server
-      const message = {
-        type: 'cursor',
-        action: 'cursorPosition',
-        locationY: Y,
-        locationX: X,
-        padId,
-        myAuthorId,
-      };
-      last = [];
-      last[0] = Y;
-      last[1] = X;
+      (args.callstack.type === 'handleKeyEvent'));
+  if (!caretMoving || !initiated) return;
 
-      // console.log("Sent message", message);
-      pad.collabClient.sendMessage(message); // Send the cursor position message to the server
-    }
+  const Y = args.rep.selStart[0];
+  const X = args.rep.selStart[1];
+  if (last && Y === last[0] && X === last[1]) return;
+  last = [Y, X];
+
+  const message = {
+    type: 'cursor',
+    action: 'cursorPosition',
+    locationY: Y,
+    locationX: X,
+    padId: pad.getPadId(),
+    myAuthorId: pad.getUserId(),
+  };
+
+  if (!cursorThrottle) {
+    cursorThrottle = createThrottle({send: sendCursor, windowMs: THROTTLE_MS});
   }
-  return;
+  cursorThrottle.submit(message);
 };
 
 exports.handleClientMessage_CUSTOM = (hook, context, cb) => {

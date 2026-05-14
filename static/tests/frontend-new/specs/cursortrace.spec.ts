@@ -23,7 +23,7 @@ test.beforeEach(async ({page}) => {
 test.describe('ep_cursortrace', () => {
   test('plugin is loaded and exposes itself in clientVars', async ({page}) => {
     const enabled = await page.evaluate(
-      () => (window as any).clientVars?.plugins?.plugins?.ep_cursortrace != null);
+        () => (window as any).clientVars?.plugins?.plugins?.ep_cursortrace != null);
     expect(enabled).toBe(true);
   });
 

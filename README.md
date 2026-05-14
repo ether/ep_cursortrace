@@ -8,6 +8,7 @@ Looking for the follow feature?  See ep_author_follow
 
 ## Features
 * See where another authors caret is in really real time
+* Per-user and pad-wide settings toggle for showing other users locations
 
 ## TODO
 

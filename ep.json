@@ -7,10 +7,15 @@
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
         "aceSelectionChanged": "ep_cursortrace/static/js/main:aceSelectionChanged",
-        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
+        "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main",
+        "handleClientMessage_CLIENT_MESSAGE": "ep_cursortrace/static/js/main:handleClientMessage_CLIENT_MESSAGE"
       },
       "hooks": {
-        "handleMessage": "ep_cursortrace/handleMessage"
+        "handleMessage": "ep_cursortrace/handleMessage",
+        "loadSettings": "ep_cursortrace/index",
+        "clientVars": "ep_cursortrace/index",
+        "eejsBlock_mySettings": "ep_cursortrace/index",
+        "eejsBlock_padSettings": "ep_cursortrace/index"
       }
     }
   ]

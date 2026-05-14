@@ -3,13 +3,28 @@
 let initiated = false;
 let last = undefined;
 
+const {padToggle} = require('ep_plugin_helpers/pad-toggle');
 const {createThrottle} = require('./throttle');
+const toggleConfig = require('../../toggle-config');
 
 const THROTTLE_MS = 250;
 let cursorThrottle = null;
+let cursortraceEnabled = toggleConfig.defaultEnabled;
+
+const cursortraceToggle = padToggle(toggleConfig);
 
 const sendCursor = (message) => {
   pad.collabClient.sendMessage(message);
+};
+
+const clearRemoteCarets = () => {
+  $('iframe[name="ace_outer"]').contents().find('.caretindicator').remove();
+};
+
+const setCursortraceEnabled = (enabled) => {
+  cursortraceEnabled = !!enabled;
+  last = undefined;
+  if (!cursortraceEnabled) clearRemoteCarets();
 };
 
 exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
@@ -20,11 +35,14 @@ exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
 
 exports.postAceInit = (hookName, args, cb) => {
   initiated = true;
+  cursortraceToggle.init({onChange: setCursortraceEnabled});
   window.addEventListener('beforeunload', () => {
     if (cursorThrottle) cursorThrottle.flush();
   });
   cb();
 };
+
+exports.handleClientMessage_CLIENT_MESSAGE = cursortraceToggle.handleClientMessage_CLIENT_MESSAGE;
 
 exports.getAuthorClassName = (author) => {
   if (!author) return false;
@@ -92,7 +110,7 @@ const getCaretRect = ($innerFrame, $outerBody, line, offset) => {
 };
 
 const submitCursorSelection = (rep) => {
-  if (!initiated) return;
+  if (!initiated || !cursortraceEnabled) return;
   const Y = rep.selStart[0];
   const X = rep.selStart[1];
   if (last && Y === last[0] && X === last[1]) return;
@@ -119,6 +137,7 @@ exports.aceSelectionChanged = (hookName, args) => {
 
 exports.handleClientMessage_CUSTOM = (hook, context) => {
   const action = context.payload.action;
+  if (!cursortraceEnabled) return null;
   const authorId = context.payload.authorId;
   if (pad.getUserId() === authorId) return false;
   // Dont process our own caret position (yes we do get it..) -- This is not a bug

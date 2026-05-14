@@ -6,7 +6,7 @@
         "aceEditorCSS": "ep_cursortrace/static/js/css",
         "aceInitInnerdocbodyHead": "ep_cursortrace/static/js/main:aceInitInnerdocbodyHead",
         "postAceInit": "ep_cursortrace/static/js/main:postAceInit",
-        "aceEditEvent": "ep_cursortrace/static/js/main:aceEditEvent",
+        "aceSelectionChanged": "ep_cursortrace/static/js/main:aceSelectionChanged",
         "handleClientMessage_CUSTOM": "ep_cursortrace/static/js/main"
       },
       "hooks": {

@@ -1,7 +1,7 @@
 import {expect, test} from '@playwright/test';
 import {goToNewPad, goToPad} from 'ep_etherpad-lite/tests/frontend-new/helper/padHelper';
 
-test('ep_cursortrace caps broadcast rate at ~10 Hz', async ({browser}) => {
+test('ep_cursortrace caps broadcast rate at ~4 Hz', async ({browser}) => {
   const ctxA = await browser.newContext();
   const ctxB = await browser.newContext();
   const a = await ctxA.newPage();
@@ -51,13 +51,13 @@ test('ep_cursortrace caps broadcast rate at ~10 Hz', async ({browser}) => {
 
   const frames = await b.evaluate(() => (window as any).__cursorFrames);
 
-  // The throttle caps at 10 Hz. Compute an expected upper bound from the
+  // The throttle caps at ~4 Hz. Compute an expected upper bound from the
   // actual elapsed time + the drain window, plus a small slack for the
   // immediate click flush and Playwright's keypress overhead. Without the
-  // throttle this test sees ~30 frames; with the throttle ~10-15 depending
+  // throttle this test sees ~30 frames; with the throttle only a handful
   // on how long Playwright actually took to drive the keystrokes.
   const totalMs = elapsed + 250;
-  const cap = Math.ceil(totalMs / 100) + 4;
+  const cap = Math.ceil(totalMs / 250) + 3;
   expect(frames).toBeLessThanOrEqual(cap);
   expect(frames).toBeGreaterThan(0);
 

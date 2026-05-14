@@ -2,11 +2,10 @@
 
 let initiated = false;
 let last = undefined;
-let globalKey = 0;
 
 const {createThrottle} = require('./throttle');
 
-const THROTTLE_MS = 100;
+const THROTTLE_MS = 250;
 let cursorThrottle = null;
 
 const sendCursor = (message) => {
@@ -19,7 +18,7 @@ exports.aceInitInnerdocbodyHead = (hookName, args, cb) => {
   cb();
 };
 
-exports.postAceInit = (hook_name, args, cb) => {
+exports.postAceInit = (hookName, args, cb) => {
   initiated = true;
   window.addEventListener('beforeunload', () => {
     if (cursorThrottle) cursorThrottle.flush();
@@ -48,15 +47,54 @@ exports.className2Author = (className) => {
   }
 };
 
-exports.aceEditEvent = (hook_name, args) => {
-  // Drop idleWorkTimer: it ticks even when nothing has changed and is the
-  // primary source of socket spam. Click + key events are sufficient signal.
-  const caretMoving = ((args.callstack.editEvent.eventType === 'handleClick') ||
-      (args.callstack.type === 'handleKeyEvent'));
-  if (!caretMoving || !initiated) return;
+const getTextPoint = (line, offset) => {
+  const doc = line.ownerDocument;
+  const walker = doc.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+  let remaining = Math.max(0, offset);
+  let lastTextNode = null;
+  let totalLength = 0;
+  let node;
+  while ((node = walker.nextNode())) {
+    lastTextNode = node;
+    const len = node.textContent.length;
+    totalLength += len;
+    if (remaining <= len) return {node, offset: remaining, clamped: false, totalLength};
+    remaining -= len;
+  }
+  if (!lastTextNode) return null;
+  return {
+    node: lastTextNode,
+    offset: lastTextNode.textContent.length,
+    clamped: true,
+    totalLength,
+  };
+};
 
-  const Y = args.rep.selStart[0];
-  const X = args.rep.selStart[1];
+const getCaretRect = ($innerFrame, $outerBody, line, offset) => {
+  const point = getTextPoint(line, offset);
+  if (!point) return null;
+  const range = line.ownerDocument.createRange();
+  range.setStart(point.node, point.offset);
+  range.setEnd(point.node, point.offset);
+  const rect = range.getClientRects()[0] || range.getBoundingClientRect();
+  if (!rect) return null;
+  const innerRect = $innerFrame.get(0).getBoundingClientRect();
+  const outerRect = $outerBody.get(0).getBoundingClientRect();
+  const innerPaddingLeft = parseInt($innerFrame.css('padding-left'), 10) || 0;
+  const innerPaddingTop = parseInt($innerFrame.css('padding-top'), 10) || 0;
+  return {
+    left: rect.left + innerRect.left + innerPaddingLeft - outerRect.left,
+    top: rect.top + innerRect.top + innerPaddingTop - outerRect.top,
+    height: rect.height || parseInt($(line).css('line-height'), 10) || 16,
+    clamped: point.clamped,
+    totalLength: point.totalLength,
+  };
+};
+
+const submitCursorSelection = (rep) => {
+  if (!initiated) return;
+  const Y = rep.selStart[0];
+  const X = rep.selStart[1];
   if (last && Y === last[0] && X === last[1]) return;
   last = [Y, X];
 
@@ -75,18 +113,18 @@ exports.aceEditEvent = (hook_name, args) => {
   cursorThrottle.submit(message);
 };
 
-exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
-  /* I NEED A REFACTOR, please */
-  // A huge problem with this is that it runs BEFORE the dom has
-  // been updated so edit events are always late..
+exports.aceSelectionChanged = (hookName, args) => {
+  submitCursorSelection(args.rep);
+};
 
+exports.handleClientMessage_CUSTOM = (hook, context) => {
   const action = context.payload.action;
   const authorId = context.payload.authorId;
   if (pad.getUserId() === authorId) return false;
   // Dont process our own caret position (yes we do get it..) -- This is not a bug
   const authorClass = exports.getAuthorClassName(authorId);
 
-  if (action === 'cursorPosition') {
+  const renderCursorPosition = (attempt = 0) => {
     // an author has sent this client a cursor position, we need to show it in the dom
     let authorName = context.payload.authorName;
     if (authorName === 'null' || authorName == null) {
@@ -95,120 +133,31 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
     }
     // +1 as Etherpad line numbers start at 1
     const y = context.payload.locationY + 1;
-    let x = context.payload.locationX;
-    const inner = $('iframe[name="ace_outer"]').contents().find('iframe');
-    let leftOffset;
-    if (inner.length !== 0) {
-      leftOffset = parseInt($(inner).offset().left);
-      leftOffset += parseInt($(inner).css('padding-left'));
-    }
+    const x = context.payload.locationX;
+    const outer = $('iframe[name="ace_outer"]').contents();
+    const inner = outer.find('iframe');
+    const $outerBody = outer.find('#outerdocbody');
 
     let stickUp = false;
 
     // Get the target Line
-    const div = $('iframe[name="ace_outer"]').contents()
-        .find('iframe').contents().find('#innerdocbody').find(`div:nth-child(${y})`);
-
-    const divWidth = div.width();
+    const div = inner.contents().find('#innerdocbody').find(`div:nth-child(${y})`);
     // Is the line visible yet?
     if (div.length !== 0) {
-      let top = $(div).offset().top; // A standard generic offset
-      // The problem we have here is we don't know the px X offset of the caret from the user
-      // Because that's a blocker for now lets just put a nice little div on the left hand side..
-      // SO here is how we do this..
-      // Get the entire string including the styling
-      // Put it in a hidden SPAN that has the same width as ace inner
-      // Delete everything after X chars
-      // Measure the new width -- This gives us the offset without modifying the ACE Dom
-      // Due to IE sucking this doesn't work in IE....
-
-      // We need the offset of the innerdocbody on top too.
-      top += parseInt($('iframe[name="ace_outer"]').contents().find('iframe').css('paddingTop'));
-      // Also account for #outerdocbody padding-top. On desktop layout this
-      // is 20px (set by Etherpad core) and the plugin was implicitly
-      // relying on that constant; on mobile-layout it's 0, so other
-      // users' cursors drifted ~20px down on narrow screens (#60).
-      const $outerBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
-      top += parseInt($outerBody.css('paddingTop'), 10) || 0;
-
-      // Get the HTML
-      const html = $(div).html();
-
-      // build an ugly ID, makes sense to use authorId as authorId's cursor can only exist once
-      const authorWorker = `hiddenUgly${exports.getAuthorClassName(authorId)}`;
-
-      // if Div contains block attribute IE h1 or H2 then increment by the number
-      // This is horrible but a limitation because I'm parsing HTML
-      if ($(div).children('span').length < 1) { x -= 1; }
-
-      // Get the new string but maintain mark up
-      const newText = html_substr(html, (x));
-
-      // A load of ugly HTML that can prolly be moved to CSS
-      const newLine = `<span style='width:${divWidth}px' id='${authorWorker}'` +
-        ` class='ghettoCursorXPos'>${newText}</span>`;
-
-      // Set the globalKey to 0, we use this when we wrap the objects in a datakey
-      globalKey = 0; // It's bad, messy, don't ever develop like this.
-
-      // Add the HTML to the DOM
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody').append(newLine);
-
-      // Get the worker element
-      const worker = $('iframe[name="ace_outer"]').contents()
-          .find('#outerdocbody').find(`#${authorWorker}`);
-
-      // Wrap the HTML in spans so we can find a char
-      $(worker).html(wrap($(worker)));
-      // console.log($(worker).html(), x);
-
-      // Get the Left offset of the x span
-      const span = $(worker).find(`[data-key="${x - 1}"]`);
-
-      // Get the width of the element (This is how far out X is in px);
-      let left;
-      if (span.length !== 0) {
-        left = span.position().left;
-      } else {
-        // empty span.
-        left = 0;
+      const caretRect = getCaretRect(inner, $outerBody, div.get(0), x);
+      if (!caretRect) return;
+      if (caretRect.clamped && attempt < 5) {
+        requestAnimationFrame(() => renderCursorPosition(attempt + 1));
+        return;
       }
-
-      // Get the height of the element minus the inner line height
-      const height = worker.height(); // the height of the worker
-      top = top + height - (span.height() || 12);
-      // plus the top offset minus the actual height of our focus span
+      const {left, height} = caretRect;
+      let {top} = caretRect;
+      top -= height;
       if (top <= 0) { // If the tooltip wont be visible to the user because it's too high up
         stickUp = true;
-        top += (span.height() * 2);
+        top += (height * 2);
         if (top < 0) { top = 0; } // handle case where caret is in 0,0
       }
-
-      // Add the innerdocbody offset
-      left += leftOffset;
-
-      // Add support for page view margins
-      let divMargin = $(div).css('margin-left');
-      let innerdocbodyMargin = $(div).parent().css('padding-left');
-      if (innerdocbodyMargin) {
-        innerdocbodyMargin = parseInt(innerdocbodyMargin);
-      } else {
-        innerdocbodyMargin = 0;
-      }
-      if (divMargin) {
-        divMargin = divMargin.replace('px', '');
-        // console.log("Margin is ", divMargin);
-        divMargin = parseInt(divMargin);
-        if ((divMargin + innerdocbodyMargin) > 0) {
-          // console.log("divMargin", divMargin);
-          left += divMargin;
-        }
-      }
-      left += 18;
-
-      // Remove the element
-      $('iframe[name="ace_outer"]').contents().find('#outerdocbody')
-          .contents().remove(`#${authorWorker}`);
 
       // Author color
       const users = pad.collabClient.getConnectedUsers();
@@ -221,7 +170,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
           } else {
             color = value.colorId; // Test for XSS
           }
-          const outBody = $('iframe[name="ace_outer"]').contents().find('#outerdocbody');
+          const outBody = $outerBody;
 
           // Remove all divs that already exist for this author
           $('iframe[name="ace_outer"]').contents().find(`.caret-${authorClass}`).remove();
@@ -231,7 +180,7 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
 
           // Create a new Div for this author
           const $indicator = $(`<div class='caretindicator ${location} caret-${authorClass}'
-              style='height:16px;left:${left}px;top:${top}px;background-color:${color}'>
+              style='height:${height}px;left:${left}px;top:${top}px;background-color:${color}'>
               <p class='stickp ${location}'></p></div>`);
           $indicator.attr('title', authorName);
           $indicator.find('p').text(authorName);
@@ -246,64 +195,12 @@ exports.handleClientMessage_CUSTOM = (hook, context, cb) => {
         }
       });
     }
-  }
-  return cb();
-};
-
-const html_substr = (str, count) => {
-  const div = document.createElement('div');
-  div.innerHTML = str;
-
-  const track = (el) => {
-    if (count > 0) {
-      const len = el.data.length;
-      count -= len;
-      if (count <= 0) {
-        el.data = el.substringData(0, el.data.length + count);
-      }
-    } else {
-      el.data = '';
-    }
   };
 
-  const walk = (el, fn) => {
-    let node = el.firstChild;
-    if (!node) return;
-    do {
-      if (node.nodeType === 3) {
-        fn(node);
-        //          Added this >>------------------------------------<<
-      } else if (node.nodeType === 1 && node.childNodes && node.childNodes[0]) {
-        walk(node, fn);
-      }
-    } while (node = node.nextSibling); /* eslint-disable-line no-cond-assign */
-  };
-  walk(div, track);
-  return div.innerHTML;
-};
+  if (action !== 'cursorPosition') return null;
 
-const wrap = (target) => {
-  const newtarget = $('<div></div>');
-  const nodes = target.contents().clone(); // the clone is critical!
-  if (!nodes) return;
-  nodes.each(function () {
-    if (this.nodeType === 3) { // text
-      let newhtml = '';
-      const text = this.wholeText; // maybe "textContent" is better?
-      for (let i = 0; i < text.length; i++) {
-        if (text[i] === ' ') {
-          newhtml += `<span data-key=${globalKey}> </span>`;
-        } else {
-          newhtml += `<span data-key=${globalKey}>${text[i]}</span>`;
-        }
-        globalKey++;
-      }
-      newtarget.append($(newhtml));
-    } else { // recursion FTW!
-      // console.log("recursion"); // IE handles recursion badly
-      $(this).html(wrap($(this))); // This really hurts doing any sort of count..
-      newtarget.append($(this));
-    }
-  });
-  return newtarget.html();
+  // Wait for the viewer DOM to apply the related edit so the measured position
+  // matches the text layout currently on screen.
+  requestAnimationFrame(renderCursorPosition);
+  return null;
 };

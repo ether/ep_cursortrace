@@ -98,11 +98,9 @@ const getCaretRect = ($innerFrame, $outerBody, line, offset) => {
   if (!rect) return null;
   const innerRect = $innerFrame.get(0).getBoundingClientRect();
   const outerRect = $outerBody.get(0).getBoundingClientRect();
-  const innerPaddingLeft = parseInt($innerFrame.css('padding-left'), 10) || 0;
-  const innerPaddingTop = parseInt($innerFrame.css('padding-top'), 10) || 0;
   return {
-    left: rect.left + innerRect.left + innerPaddingLeft - outerRect.left,
-    top: rect.top + innerRect.top + innerPaddingTop - outerRect.top,
+    left: rect.left + innerRect.left - outerRect.left,
+    top: rect.top + innerRect.top - outerRect.top,
     height: rect.height || parseInt($(line).css('line-height'), 10) || 16,
     clamped: point.clamped,
     totalLength: point.totalLength,

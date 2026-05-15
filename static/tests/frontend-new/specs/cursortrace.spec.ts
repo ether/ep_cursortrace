@@ -56,8 +56,8 @@ test.describe('ep_cursortrace', () => {
     const ctxB = await browser.newContext();
     const a = await ctxA.newPage();
     const b = await ctxB.newPage();
-
     const padId = await goToNewPad(a);
+    await goToPad(b, padId);
     await goToPad(b, padId);
     await b.evaluate(() => {
       (window as any).__cursorRecv = [];
@@ -86,7 +86,6 @@ test.describe('ep_cursortrace', () => {
     expect(received.length).toBeGreaterThan(0);
     expect(received.at(-1).locationX).toBe(3);
     expect(received.at(-1).locationY).toBe(0);
-
     await ctxA.close();
     await ctxB.close();
   });
@@ -115,7 +114,6 @@ test.describe('ep_cursortrace', () => {
     expect(firstLinePosition).not.toBeNull();
     expect(Number.isFinite(firstLinePosition!.left)).toBe(true);
     expect(Number.isFinite(firstLinePosition!.top)).toBe(true);
-
     await ctxA.close();
     await ctxB.close();
   });

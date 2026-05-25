@@ -31,6 +31,6 @@
     "lint:fix": "eslint --fix ."
   },
   "dependencies": {
-    "ep_plugin_helpers": "^0.6.0"
+    "ep_plugin_helpers": "^0.6.7"
   }
 }

@@ -32,11 +32,5 @@
   },
   "dependencies": {
     "ep_plugin_helpers": "^0.6.7"
-  },
-  "pnpm": {
-    "overrides": {
-      "js-yaml@4": "^4.3.2",
-      "brace-expansion@1": "^1.1.16"
-    }
   }
 }

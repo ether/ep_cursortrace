@@ -148,9 +148,12 @@ exports.handleClientMessage_CUSTOM = (hook, context) => {
       // If the users username isn't set then display a smiley face
       authorName = '😊';
     }
+    const {locationX, locationY} = context.payload;
+    if (!Number.isInteger(locationX) || !Number.isInteger(locationY)) return;
+    if (locationX < 0 || locationY < 0) return;
     // +1 as Etherpad line numbers start at 1
-    const y = context.payload.locationY + 1;
-    const x = context.payload.locationX;
+    const y = locationY + 1;
+    const x = locationX;
     const outer = $('iframe[name="ace_outer"]').contents();
     const inner = outer.find('iframe');
     const $outerBody = outer.find('#outerdocbody');

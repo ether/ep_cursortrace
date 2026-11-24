@@ -146,4 +146,43 @@ describe('coalescer', function () {
     assert.doesNotThrow(() => c.submit('a1', {x: 2}));
     assert.strictEqual(calls, 2);
   });
+
+  it('forgets keys that have been idle for a full window', async function () {
+    const flushed = [];
+    const clock = makeFakeClock();
+    const c = createCoalescer({
+      flush: (key, payload) => flushed.push({key, payload}),
+      now: clock.now,
+      setTimeout: clock.setTimeout,
+      clearTimeout: clock.clearTimeout,
+      windowMs: 100,
+    });
+    for (let i = 0; i < 1000; i++) {
+      c.submit(`pad${i}\u0000a1`, {x: i});
+      clock.advance(10);
+    }
+    assert.strictEqual(flushed.length, 1000);
+    // Only keys flushed within roughly the last two windows can remain.
+    assert.ok(c.size() <= 20, `size ${c.size()}`);
+  });
+
+  it('still rate-limits a key across a sweep', async function () {
+    const flushed = [];
+    const clock = makeFakeClock();
+    const c = createCoalescer({
+      flush: (key, payload) => flushed.push({key, payload}),
+      now: clock.now,
+      setTimeout: clock.setTimeout,
+      clearTimeout: clock.clearTimeout,
+      windowMs: 100,
+    });
+    c.submit('a1', {x: 1});
+    clock.advance(150);
+    c.submit('a2', {x: 1}); // triggers a sweep that drops idle a1
+    c.submit('a2', {x: 2}); // within a2's window: deferred
+    assert.strictEqual(flushed.length, 2);
+    clock.advance(100);
+    assert.strictEqual(flushed.length, 3);
+    assert.deepStrictEqual(flushed[2], {key: 'a2', payload: {x: 2}});
+  });
 });

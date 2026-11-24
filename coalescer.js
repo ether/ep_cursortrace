@@ -30,8 +30,23 @@ exports.createCoalescer = ({
     }
   };
 
+  // A key whose last flush is at least windowMs old behaves exactly like a key
+  // that was never flushed, so its timestamp can be dropped. Sweep at most once
+  // per window so the maps only hold keys active within the last window.
+  let lastSweepAt = null;
+  const sweep = () => {
+    const t = now();
+    if (lastSweepAt != null && t - lastSweepAt < windowMs) return;
+    lastSweepAt = t;
+    for (const [key, flushedAt] of lastFlushedAt) {
+      if (t - flushedAt >= windowMs && !timers.has(key)) lastFlushedAt.delete(key);
+    }
+  };
+
   return {
+    size: () => lastFlushedAt.size,
     submit: (authorId, payload) => {
+      sweep();
       const neverFlushed = !lastFlushedAt.has(authorId);
       const since = neverFlushed ? windowMs : now() - lastFlushedAt.get(authorId);
       if (since >= windowMs) {

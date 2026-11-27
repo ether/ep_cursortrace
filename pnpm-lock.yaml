@@ -20,8 +20,8 @@ importers:
         specifier: ^8.57.1
         version: 8.57.1(supports-color@7.2.0)
       eslint-config-etherpad:
-        specifier: ^5.0.0
-        version: 5.0.2(eslint@8.57.1(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
+        specifier: ^5.0.3
+        version: 5.0.3(eslint@8.57.1(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -463,8 +463,8 @@ packages:
     peerDependencies:
       eslint: '>=6.0.0'
 
-  eslint-config-etherpad@5.0.2:
-    resolution: {integrity: sha512-D4lpqgMC974zWDgDuSwL8e0zEeYaokCzUq46Cfs8Fd9D/rucsCACx70wBOMR7TjilTPmzqc2E+Lb372udEGU3g==}
+  eslint-config-etherpad@5.0.3:
+    resolution: {integrity: sha512-vaCVWBrJMxdN47M8dqhppt4N1zavwKd0GanMkp8lt8PF/9gO3d7Lv1eSJIcafjZjzw6SbqbSFkvunwfp3uVuQQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -1819,7 +1819,7 @@ snapshots:
       eslint: 8.57.1(supports-color@7.2.0)
       semver: 7.7.4
 
-  eslint-config-etherpad@5.0.2(eslint@8.57.1(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3):
+  eslint-config-etherpad@5.0.3(eslint@8.57.1(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3):
     dependencies:
       '@eslint/eslintrc': 3.3.7(supports-color@7.2.0)
       '@eslint/js': 9.39.5
